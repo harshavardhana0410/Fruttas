@@ -37,7 +37,7 @@ export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
   return (
     <div
       id={`point-${point.id}`}
-      className={cx('scroll-mt-32 border-b border-hairline py-5', missingAnswer && 'bg-fail-bg/30')}
+      className={cx('scroll-mt-32 border-b border-hairline py-4 sm:py-3', missingAnswer && 'bg-fail-bg/30')}
     >
       <div className="flex gap-3">
         <span className="w-6 shrink-0 pt-0.5 font-mono tabular text-[12px] text-ink-soft">
@@ -45,23 +45,28 @@ export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start gap-x-2 gap-y-1.5">
-            <p className="flex-1 text-[15px] leading-[1.5]">{point.text}</p>
-            {point.critical && <Badge tone="warn">Critical</Badge>}
-          </div>
+          {/* Question and answer share one row from sm up. Stacked, every
+              point cost ~150px and only four fitted on a laptop screen.
+              Phones keep the full-width 52px buttons for gloved hands. */}
+          <div className="sm:flex sm:items-center sm:gap-5">
+            <div className="flex flex-1 flex-wrap items-start gap-x-2 gap-y-1.5">
+              <p className="flex-1 text-[15px] leading-[1.5]">{point.text}</p>
+              {point.critical && <Badge tone="warn">Critical</Badge>}
+            </div>
 
-          <Segmented
-            className="mt-3.5"
-            size="lg"
-            label={`Point ${point.serial}: ${point.text}`}
-            value={answer.value}
-            invalid={missingAnswer}
-            onChange={(v: YesNo) => onChange({ ...answer, value: v })}
-            options={[
-              { value: 'yes', label: 'Yes', tone: 'pass' },
-              { value: 'no', label: 'No', tone: 'fail' },
-            ]}
-          />
+            <Segmented
+              className="mt-3 sm:mt-0 sm:w-[180px] sm:shrink-0"
+              size="lg"
+              label={`Point ${point.serial}: ${point.text}`}
+              value={answer.value}
+              invalid={missingAnswer}
+              onChange={(v: YesNo) => onChange({ ...answer, value: v })}
+              options={[
+                { value: 'yes', label: 'Yes', tone: 'pass' },
+                { value: 'no', label: 'No', tone: 'fail' },
+              ]}
+            />
+          </div>
 
           {missingAnswer && (
             <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-fail-fg">

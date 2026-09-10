@@ -63,7 +63,7 @@ export function FormShell({
       </div>
 
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface no-print"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface no-print lg:pl-60"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className={cx('mx-auto flex h-16 items-center justify-between gap-3 px-5 lg:px-8', wide ? 'max-w-[1280px]' : 'max-w-[900px]')}>

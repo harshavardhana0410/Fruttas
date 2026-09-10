@@ -27,3 +27,4 @@ npm-debug.log*
 .claude/skills/
 skills-lock.json
 *.tsbuildinfo
+.gstack/

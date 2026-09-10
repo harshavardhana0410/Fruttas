@@ -10,7 +10,6 @@ import { FormShell } from '../components/layout/FormShell'
 import { InspectionRow } from '../components/forms/InspectionRow'
 import { Button } from '../components/ui/Button'
 import { Notice, Skeleton } from '../components/ui/Feedback'
-import { DefRow } from '../components/ui/Field'
 import { cx } from '../lib/cx'
 
 function blank(points: InspectionPoint[]): AuditAnswer[] {
@@ -72,7 +71,7 @@ export default function AuditForm() {
 
   if (!points || !answers) {
     return (
-      <FormShell title="Kitchen Audit" actions={<span />}>
+      <FormShell title="Kitchen Audit" wide actions={<span />}>
         <Skeleton className="h-24" />
         <div className="mt-6 flex flex-col gap-6">
           {Array.from({ length: 4 }, (_, i) => (
@@ -124,6 +123,7 @@ export default function AuditForm() {
   return (
     <FormShell
       title="Kitchen Audit"
+      wide
       progress={{ done: answered, total: points.length }}
       actions={
         <>
@@ -184,13 +184,14 @@ export default function AuditForm() {
         </div>
       )}
 
-      <dl className="mb-2 rounded-card border border-hairline bg-surface px-4 py-1">
-        <DefRow term="Client ID">
-          <span className="font-mono tabular">{kitchen?.clientId ?? '—'}</span>
-        </DefRow>
-        <DefRow term="Kitchen">{kitchen?.name ?? '—'}</DefRow>
-        <DefRow term="Date">{longDate(isoDate())}</DefRow>
-      </dl>
+      {/* One line, not a three-row card: the questions are the point. */}
+      <p className="mb-4 flex flex-wrap gap-x-2 text-[13px] text-ink-soft">
+        <span className="text-ink">{kitchen?.name ?? '—'}</span>
+        <span aria-hidden>·</span>
+        <span className="font-mono tabular">{kitchen?.clientId ?? '—'}</span>
+        <span aria-hidden>·</span>
+        <span>{longDate(isoDate())}</span>
+      </p>
 
       <div className="lg:flex lg:gap-10">
         {desktop && (
