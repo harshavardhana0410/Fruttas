@@ -1,0 +1,70 @@
+-- ============================================================================
+-- SEED
+--
+-- Deliberately almost empty.
+--
+-- Every kitchen, staff member, submission and item preset from the old mock
+-- layer was fabricated. None of it belongs in a compliance database — a
+-- fabricated audit history is worse than no history.
+--
+--   kitchens          0   admin creates the real ones through the UI
+--   profiles          0   created by trigger when the admin account signs up
+--   submissions       0   never seeded, under any circumstances
+--   audit_answers     0
+--   submission_items  0
+--   item_presets      0   the 44 items in the mock were invented
+--   inspection_points 16  see below
+-- ============================================================================
+
+
+-- ----------------------------------------------------------------------------
+-- INSPECTION POINTS — REAL CONTENT, NOT DEMO DATA
+--
+-- These 16 points are transcribed verbatim from Frutta's actual paper audit
+-- form. They are the only seeded rows that came from the real world, which is
+-- why they survived the cull.
+--
+-- Delete this block only if you deliberately want to start from an empty
+-- template and retype the checklist through the Templates screen. Do not
+-- delete it by reflex alongside the fake kitchens.
+--
+-- 'critical' marks the three points where a failure means someone could
+-- actually get ill. 'require_photo_on_fail' marks the three where a photo is
+-- the only credible evidence the problem was found and dealt with.
+-- ----------------------------------------------------------------------------
+
+-- The 16 inspection points moved to migration 20260908000200 so that a
+-- hosted `db push` gets them and `db reset` cannot insert them twice.
+
+
+
+-- ----------------------------------------------------------------------------
+-- THE ADMIN ACCOUNT
+--
+-- Not created here. Inserting into auth.users by hand skips password hashing
+-- and the identities row, and produces an account that cannot sign in.
+--
+-- Create it through the Auth admin API instead. The first account on an empty
+-- database is promoted to admin automatically by the on_auth_user_created
+-- trigger, so this is all that is needed:
+--
+--   Local:   supabase start, then Studio > Authentication > Add user
+--
+--   Hosted:  curl -X POST "$SUPABASE_URL/auth/v1/admin/users" \
+--              -H "apikey: $SERVICE_ROLE_KEY" \
+--              -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+--              -H "Content-Type: application/json" \
+--              -d '{"email":"admin@yourdomain.com",
+--                   "password":"<a real password, not a PIN>",
+--                   "email_confirm":true,
+--                   "user_metadata":{"name":"Your Name"}}'
+--
+-- Then confirm the promotion actually happened:
+--
+--   select name, staff_id, role from public.profiles;
+--   -- expect exactly one row, role = 'admin'
+--
+-- The admin's kitchen_id is null on purpose: an admin is not tied to one
+-- kitchen. Every RLS path and RPC is written to tolerate that, but it is the
+-- most likely place for a bug to hide, so test it explicitly.
+-- ----------------------------------------------------------------------------

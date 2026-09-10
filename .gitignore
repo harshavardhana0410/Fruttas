@@ -1,0 +1,29 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Secrets. .env.example is committed; anything real is not.
+.env
+.env.local
+.env.*.local
+
+# Supabase
+supabase/.temp
+supabase/.branches
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Local tooling — not part of the app
+.agents/
+.claude/settings.local.json
+.claude/skills/
+skills-lock.json
+*.tsbuildinfo

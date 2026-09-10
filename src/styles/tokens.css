@@ -1,0 +1,258 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   FRUTTA KITCHEN OPS — DESIGN TOKENS
+   Premium utilitarian minimalism. Colour is a scarce resource.
+
+   Everything below sits in an explicit @layer. Unlayered CSS wins
+   over Tailwind's layered utilities regardless of specificity, so
+   leaving base styles unlayered would silently break text-*, bg-*
+   and every other utility.
+   ============================================================ */
+
+@theme {
+  /* Surfaces — warm monochrome, never pure grey */
+  --color-canvas: #fbfbfa;
+  --color-surface: #ffffff;
+  --color-sunken: #f7f6f3;
+  --color-hairline: #eaeaea;
+
+  /* Text — never #000000 */
+  --color-ink: #111111;
+  --color-ink-soft: #6b6a66;
+  --color-ink-mute: #b4b2ad;
+
+  /* Semantic pastels — the only colour in the interface */
+  --color-pass-bg: #edf3ec;
+  --color-pass-fg: #346538;
+  --color-fail-bg: #fdebec;
+  --color-fail-fg: #9f2f2d;
+  --color-warn-bg: #fbf3db;
+  --color-warn-fg: #956400;
+  --color-info-bg: #e1f3fe;
+  --color-info-fg: #1f6c9f;
+
+  /* Typography */
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-serif: 'Newsreader', 'Instrument Serif', Georgia, serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Radius — crisp, never pill except status chips */
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-chip: 4px;
+
+  /* The only two permitted shadows in the entire app */
+  --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.06);
+
+  --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
+
+  /* Focus — visible on every interactive element, never removed */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Kill the native number spinners — we supply our own steppers */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-mute);
+  }
+
+  /* Hairline scrollbars, unobtrusive */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-hairline) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-hairline);
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* Numeric alignment everywhere numbers are compared */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .title-editorial {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .label-section {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ink-soft);
+    line-height: 1.4;
+  }
+
+  /* ----- Motion. Transform and opacity only. -----
+     Entry animations are opt-in behind no-preference, so content is
+     visible by default. Nothing here may be the reason a user cannot
+     see a checklist. */
+
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-enter {
+      animation: enter 400ms var(--ease-out-quint) both;
+      animation-delay: calc(var(--i, 0) * 40ms);
+    }
+
+    .animate-slide-down {
+      animation: slide-down 200ms var(--ease-out-quint) both;
+    }
+  }
+
+  .animate-skeleton {
+    animation: skeleton 2s ease-in-out infinite;
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes skeleton {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Manual reduced-motion preference from Settings */
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ============================================================
+   PRINT — deliberately unlayered so it beats every utility.
+   Submission records must file as clean paper.
+   ============================================================ */
+
+@media print {
+  @page {
+    margin: 18mm;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  .no-print,
+  nav,
+  aside {
+    display: none !important;
+  }
+
+  .print-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-full {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  a[href]::after {
+    content: '';
+  }
+}
