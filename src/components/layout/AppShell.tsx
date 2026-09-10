@@ -1,3 +1,4 @@
+import { Component } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
@@ -9,10 +10,12 @@ import {
   User,
   Users,
   Sliders,
+  Warning,
 } from '@phosphor-icons/react'
 import type { Role } from '../../lib/types'
 import { useOnline, useSession } from '../../lib/session'
 import { cx } from '../../lib/cx'
+import { EmptyState } from '../ui/Feedback'
 
 interface NavItem {
   to: string
@@ -62,7 +65,9 @@ export function AppShell() {
       <div className="lg:pl-60">
         {!online && <OfflineBanner />}
         <main id="main" className={cx('mx-auto max-w-[1280px] px-5 py-6 lg:px-8 lg:py-8', !immersive && 'pb-24 lg:pb-8')}>
-          <Outlet />
+          <PageErrorBoundary key={location.pathname}>
+            <Outlet />
+          </PageErrorBoundary>
         </main>
       </div>
 
@@ -142,4 +147,29 @@ export function OfflineBanner() {
       Offline — your entries are saved on this device and will sync automatically.
     </div>
   )
+}
+
+/**
+ * Shows why a page failed to load (useAsync rethrows) instead of leaving a
+ * skeleton on screen forever. Keyed by path, so moving to another page
+ * clears it.
+ */
+class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children
+    return (
+      <EmptyState
+        icon={<Warning size={24} />}
+        title="This page could not load"
+        body={this.state.error.message}
+        action={{ label: 'Try again', onClick: () => this.setState({ error: null }) }}
+      />
+    )
+  }
 }

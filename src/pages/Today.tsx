@@ -1,17 +1,41 @@
 import { Link } from 'react-router-dom'
-import { CaretRight, ClipboardText, ListChecks } from '@phosphor-icons/react'
+import { CaretRight, ClipboardText, ListChecks, Storefront } from '@phosphor-icons/react'
 import { getTodayStatus } from '../lib/data'
 import { useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
-import { longDate } from '../lib/format'
+import { isoDate, longDate } from '../lib/format'
 import type { FormStatus } from '../lib/types'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { StatusBadge } from '../components/ui/Badge'
-import { Notice, Skeleton, SkeletonRows } from '../components/ui/Feedback'
+import { EmptyState, Notice, Skeleton, SkeletonRows } from '../components/ui/Feedback'
 import { RecordRow } from '../components/data/RecordRow'
 import { getKitchens } from '../lib/data'
 
 export default function Today() {
+  const user = useUser()
+  // Not an error: the account just hasn't been given a kitchen yet.
+  // Checked before any fetch, so it never reaches the database.
+  return user.kitchenId ? <TodayContent /> : <NoKitchen />
+}
+
+function NoKitchen() {
+  return (
+    <>
+      <PageTitle>{longDate(isoDate())}</PageTitle>
+      <div className="rounded-card border border-dashed border-hairline">
+        <EmptyState
+          icon={<Storefront size={24} />}
+          title="No kitchen assigned yet"
+          body="Ask your admin to add you to a kitchen. Your daily checklists will appear here once that's done."
+          // The profile is read once at sign-in, so pick up a new assignment by reloading.
+          action={{ label: 'Check again', onClick: () => window.location.reload() }}
+        />
+      </div>
+    </>
+  )
+}
+
+function TodayContent() {
   const user = useUser()
   const { data, loading } = useAsync(() => getTodayStatus(user.kitchenId), [user.kitchenId])
   const { data: kitchens } = useAsync(() => getKitchens(), [])

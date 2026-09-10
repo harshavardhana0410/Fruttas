@@ -307,6 +307,12 @@ export async function getTeam(): Promise<User[]> {
 export async function getTodayStatus(kitchenId: string): Promise<TodayStatus> {
   const today = isoDate()
 
+  // An unassigned account has an empty kitchen id. Sending it on would come
+  // back as a raw 'invalid input syntax for type uuid' error.
+  if (!kitchenId) {
+    throw new Error('No kitchen is assigned to this account. Ask an admin to assign one.')
+  }
+
   const [kitchenRes, todayRes, recentRes] = await Promise.all([
     supabase.from('kitchens').select('id, name, client_id, location').eq('id', kitchenId).maybeSingle(),
     supabase.from('submissions').select(SUBMISSION_COLUMNS).eq('kitchen_id', kitchenId).eq('form_date', today),
