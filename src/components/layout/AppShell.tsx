@@ -1,8 +1,9 @@
-import { Component } from 'react'
+import { Component, useState } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   ClipboardText,
+  DotsThree,
   Gear,
   GridFour,
   ListChecks,
@@ -16,6 +17,7 @@ import type { Role } from '../../lib/types'
 import { useOnline, useSession } from '../../lib/session'
 import { cx } from '../../lib/cx'
 import { EmptyState } from '../ui/Feedback'
+import { Sheet } from '../ui/Sheet'
 
 interface NavItem {
   to: string
@@ -71,7 +73,7 @@ export function AppShell() {
         </main>
       </div>
 
-      {!immersive && <BottomTabs items={items.slice(0, 4)} />}
+      {!immersive && <BottomTabs items={items} />}
     </div>
   )
 }
@@ -110,31 +112,79 @@ function Sidebar({ items }: { items: NavItem[] }) {
 }
 
 function BottomTabs({ items }: { items: NavItem[] }) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const { pathname } = useLocation()
+
+  // Five slots fit a phone. Past that, the rest sit behind "More" instead of
+  // being cut off: slicing to four left admins with no way to reach
+  // Templates or Settings on mobile.
+  const overflow = items.length > 5
+  const tabs = overflow ? items.slice(0, 4) : items
+  const extra = overflow ? items.slice(4) : []
+  const moreActive = extra.some((i) => pathname.startsWith(i.to))
+
+  const tabClass = (active: boolean) =>
+    cx('flex flex-col items-center justify-center gap-1 transition-colors', active ? 'text-ink' : 'text-ink-soft')
+
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface lg:hidden no-print"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      aria-label="Primary"
-    >
-      <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
-        {items.map((item) => (
-          <NavLink
-            key={item.label}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) =>
-              cx(
-                'flex flex-col items-center justify-center gap-1 transition-colors',
-                isActive ? 'text-ink' : 'text-ink-soft',
-              )
-            }
-          >
-            {item.icon}
-            <span className="text-[10px] uppercase tracking-[0.06em]">{item.label}</span>
-          </NavLink>
-        ))}
-      </div>
-    </nav>
+    <>
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface lg:hidden no-print"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        aria-label="Primary"
+      >
+        <div
+          className="grid h-16"
+          style={{ gridTemplateColumns: `repeat(${tabs.length + (overflow ? 1 : 0)}, 1fr)` }}
+        >
+          {tabs.map((item) => (
+            <NavLink
+              key={item.label}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => tabClass(isActive)}
+            >
+              {item.icon}
+              <span className="text-[10px] uppercase tracking-[0.06em]">{item.label}</span>
+            </NavLink>
+          ))}
+
+          {overflow && (
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              aria-haspopup="dialog"
+              className={tabClass(moreActive)}
+            >
+              <DotsThree size={SIZE} />
+              <span className="text-[10px] uppercase tracking-[0.06em]">More</span>
+            </button>
+          )}
+        </div>
+      </nav>
+
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
+        <nav className="flex flex-col gap-0.5" aria-label="More pages">
+          {extra.map((item) => (
+            <NavLink
+              key={item.label}
+              to={item.to}
+              end={item.end}
+              onClick={() => setMoreOpen(false)}
+              className={({ isActive }) =>
+                cx(
+                  'flex h-12 items-center gap-3 rounded-control px-3 text-[15px] transition-colors',
+                  isActive ? 'bg-sunken font-medium text-ink' : 'text-ink-soft hover:bg-sunken',
+                )
+              }
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </Sheet>
+    </>
   )
 }
 
