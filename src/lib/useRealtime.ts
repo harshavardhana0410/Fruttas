@@ -42,9 +42,16 @@ function useStream(table: string, event: 'INSERT' | '*', onChange: () => void) {
   }, [table, event])
 }
 
-/** A submission the caller can see was filed. */
+/** A submission the caller can see was filed or removed. */
 export function useSubmissionStream(onChange: () => void) {
-  useStream('submissions', 'INSERT', onChange)
+  useStream('submissions', '*', onChange)
+}
+
+/** Anything a record displays changed: the submission, its kitchen, or who filed it. */
+export function useRecordStream(onChange: () => void) {
+  useStream('submissions', '*', onChange)
+  useStream('kitchens', '*', onChange)
+  useStream('profiles', '*', onChange)
 }
 
 /** Anything in `table` was added, changed or removed. */

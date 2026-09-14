@@ -3,7 +3,7 @@ import { MagnifyingGlass, X } from '@phosphor-icons/react'
 import { getKitchens, getRecords, toCsv } from '../lib/data'
 import { useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
-import { useSubmissionStream } from '../lib/useRealtime'
+import { useRecordStream } from '../lib/useRealtime'
 import { daysAgo } from '../lib/format'
 import type { RecordFilters } from '../lib/types'
 import { PageTitle } from '../components/ui/Card'
@@ -30,7 +30,7 @@ export default function Records() {
   const [query, setQuery] = useState('')
   const [limit, setLimit] = useState(20)
 
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
 
   const effective: RecordFilters = {
     ...filters,
@@ -44,7 +44,10 @@ export default function Records() {
     [JSON.stringify(effective)],
   )
 
-  useSubmissionStream(reload)
+  useRecordStream(() => {
+    reload()
+    reloadKitchens()
+  })
 
   function set<K extends keyof RecordFilters>(key: K, value: RecordFilters[K]) {
     setLimit(20)

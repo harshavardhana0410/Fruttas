@@ -4,6 +4,7 @@ import { getAuditTemplate, getKitchens, readDraft, saveDraft, clearDraft } from 
 import { useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
 import { useIsDesktop } from '../lib/useMediaQuery'
+import { useTableStream } from '../lib/useRealtime'
 import { isoDate, longDate, stamp } from '../lib/format'
 import type { AuditAnswer, AuditPayload, InspectionPoint } from '../lib/types'
 import { FormShell } from '../components/layout/FormShell'
@@ -22,7 +23,8 @@ export default function AuditForm() {
   const desktop = useIsDesktop()
 
   const { data: points } = useAsync(() => getAuditTemplate(), [])
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
+  useTableStream('kitchens', reloadKitchens)
 
   const [answers, setAnswers] = useState<AuditAnswer[] | null>(null)
   const [showErrors, setShowErrors] = useState(false)

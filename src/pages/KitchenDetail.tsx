@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Storefront } from '@phosphor-icons/react'
 import { getKitchenById, getKitchens } from '../lib/data'
 import { useAsync } from '../lib/useAsync'
-import { useSubmissionStream } from '../lib/useRealtime'
+import { useRecordStream } from '../lib/useRealtime'
 import { pct, stamp } from '../lib/format'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { MetricTile } from '../components/data/MetricTile'
@@ -16,9 +16,12 @@ export default function KitchenDetail() {
   const nav = useNavigate()
 
   const { data, loading, reload } = useAsync(() => getKitchenById(id), [id])
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
 
-  useSubmissionStream(reload)
+  useRecordStream(() => {
+    reload()
+    reloadKitchens()
+  })
 
   if (loading) {
     return (

@@ -108,6 +108,8 @@ interface SubmissionRow {
   submitted_at: string
   issues: number
   compliance: number
+  kitchen?: { client_id: string } | null
+  submitter?: { name: string } | null
   audit_answers?: {
     point_id: string | null
     point_serial: number
@@ -138,10 +140,10 @@ function toSubmission(r: SubmissionRow): Submission {
   const base = {
     id: r.id,
     kitchenId: r.kitchen_id,
-    clientId: r.client_id,
+    clientId: r.kitchen?.client_id ?? r.client_id,
     date: r.form_date,
     submittedById: r.submitted_by,
-    submittedByName: r.submitted_by_name,
+    submittedByName: r.submitter?.name ?? r.submitted_by_name,
     submittedAt: r.submitted_at,
     issues: r.issues,
     compliance: r.compliance,
@@ -179,8 +181,12 @@ function toSubmission(r: SubmissionRow): Submission {
   }
 }
 
+// kitchen/submitter are embedded from the live tables so lists show the
+// current client ID and name. The copies stored on the submission are the
+// fallback when the viewer may not see that profile.
 const SUBMISSION_COLUMNS =
-  'id, type, kitchen_id, client_id, form_date, submitted_by, submitted_by_name, submitted_at, issues, compliance'
+  'id, type, kitchen_id, client_id, form_date, submitted_by, submitted_by_name, submitted_at, issues, compliance, ' +
+  'kitchen:kitchens(client_id), submitter:profiles(name)'
 
 /* ---------------------------------------------------------------
    SESSION
@@ -354,7 +360,7 @@ export async function getTodayStatus(kitchenId: string): Promise<TodayStatus> {
     throw new Error('No kitchen is assigned to this account. Ask an admin to assign one.')
   }
 
-  const todays = (todayRes.data as SubmissionRow[]) ?? []
+  const todays = (todayRes.data as unknown as SubmissionRow[]) ?? []
 
   const state = (type: FormType): { status: FormStatus; submissionId?: string } => {
     const done = todays.find((s) => s.type === type)
@@ -367,7 +373,7 @@ export async function getTodayStatus(kitchenId: string): Promise<TodayStatus> {
     kitchen: toKitchen(kitchenRes.data as KitchenRow),
     audit: state('audit'),
     items: state('items'),
-    recent: ((recentRes.data as SubmissionRow[]) ?? []).map(toSubmission),
+    recent: ((recentRes.data as unknown as SubmissionRow[]) ?? []).map(toSubmission),
   }
 }
 
@@ -396,7 +402,7 @@ export async function getRecords(filters: RecordFilters = {}): Promise<Submissio
 
   const { data, error } = await q
   if (error) fail('Loading records', error)
-  return (data as SubmissionRow[]).map(toSubmission)
+  return (data as unknown as SubmissionRow[]).map(toSubmission)
 }
 
 export async function getRecordById(id: string): Promise<Submission | null> {
@@ -414,7 +420,7 @@ export async function getRecordById(id: string): Promise<Submission | null> {
   if (error) fail('Loading the record', error)
   if (!data) return null
 
-  const submission = toSubmission(data as SubmissionRow)
+  const submission = toSubmission(data as unknown as SubmissionRow)
 
   // Photos are private objects; the stored path is not directly loadable.
   if (submission.type === 'audit') {
@@ -498,7 +504,7 @@ export async function submitAudit(payload: AuditPayload, _user: User): Promise<S
   if (error) fail('Submitting the audit', error)
 
   clearDraft('audit')
-  const submission = toSubmission(data as SubmissionRow)
+  const submission = toSubmission(data as unknown as SubmissionRow)
   await uploadAuditPhotos(submission.id, payload)
   return submission
 }

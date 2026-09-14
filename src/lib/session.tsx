@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { Role, User } from './types'
 import { loadProfile, signIn as apiSignIn, signOut as apiSignOut } from './data'
 import { supabase } from './supabase'
+import { useTableStream } from './useRealtime'
 
 interface SessionValue {
   user: User | null
@@ -53,6 +54,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe()
     }
   }, [])
+
+  // An admin assigning a kitchen or changing a role reaches this person
+  // without them signing out and back in.
+  useTableStream('profiles', () => {
+    loadProfile()
+      .then(setUser)
+      .catch(() => setUser(null))
+  })
 
   const signIn = useCallback(async (email: string, password: string, role: Role) => {
     setUser(await apiSignIn(email, password, role))

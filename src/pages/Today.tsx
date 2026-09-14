@@ -3,6 +3,7 @@ import { CaretRight, ClipboardText, ListChecks, Storefront } from '@phosphor-ico
 import { getTodayStatus } from '../lib/data'
 import { useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
+import { useRecordStream } from '../lib/useRealtime'
 import { isoDate, longDate } from '../lib/format'
 import type { FormStatus } from '../lib/types'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
@@ -37,8 +38,12 @@ function NoKitchen() {
 
 function TodayContent() {
   const user = useUser()
-  const { data, loading } = useAsync(() => getTodayStatus(user.kitchenId), [user.kitchenId])
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data, loading, reload } = useAsync(() => getTodayStatus(user.kitchenId), [user.kitchenId])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
+  useRecordStream(() => {
+    reload()
+    reloadKitchens()
+  })
 
   if (loading || !data) {
     return (

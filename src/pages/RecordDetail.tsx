@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Printer } from '@phosphor-icons/react'
 import { getAuditTemplate, getKitchens, getRecordById } from '../lib/data'
 import { useAsync } from '../lib/useAsync'
+import { useRecordStream } from '../lib/useRealtime'
 import { stamp } from '../lib/format'
 import { SubmissionDocument } from '../components/data/SubmissionDocument'
 import { Button } from '../components/ui/Button'
@@ -12,9 +13,13 @@ export default function RecordDetail() {
   const { id = '' } = useParams()
   const nav = useNavigate()
 
-  const { data: record, loading } = useAsync(() => getRecordById(id), [id])
+  const { data: record, loading, reload } = useAsync(() => getRecordById(id), [id])
   const { data: points } = useAsync(() => getAuditTemplate(), [])
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
+  useRecordStream(() => {
+    reload()
+    reloadKitchens()
+  })
 
   if (loading) {
     return (

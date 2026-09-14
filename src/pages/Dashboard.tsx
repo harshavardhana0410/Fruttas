@@ -1,6 +1,6 @@
 import { getDashboardMetrics, getKitchens } from '../lib/data'
 import { useAsync } from '../lib/useAsync'
-import { useSubmissionStream } from '../lib/useRealtime'
+import { useRecordStream } from '../lib/useRealtime'
 import { longDate, isoDate, pad2, pct, signed } from '../lib/format'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { MetricTile } from '../components/data/MetricTile'
@@ -10,10 +10,13 @@ import { Skeleton, SkeletonRows } from '../components/ui/Feedback'
 
 export default function Dashboard() {
   const { data, loading, reload } = useAsync(() => getDashboardMetrics(), [])
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
 
   // A kitchen reporting in should appear without anyone pressing refresh.
-  useSubmissionStream(reload)
+  useRecordStream(() => {
+    reload()
+    reloadKitchens()
+  })
 
   if (loading || !data) {
     return (

@@ -19,10 +19,11 @@ export default function ItemsForm() {
   const nav = useNavigate()
 
   const { data: list, reload } = useAsync(() => getKitchenItems(user.kitchenId), [user.kitchenId])
-  const { data: kitchens } = useAsync(() => getKitchens(), [])
+  const { data: kitchens, reload: reloadKitchens } = useAsync(() => getKitchens(), [])
   // The chef's edits reach this screen live. Answers are keyed by item, so
   // anything already checked survives a refresh of the list.
   useTableStream('kitchen_items', reload)
+  useTableStream('kitchens', reloadKitchens)
 
   const [answers, setAnswers] = useState<Answers | null>(null)
   const [showErrors, setShowErrors] = useState(false)

@@ -80,7 +80,7 @@ export default function Review({ kind }: { kind: FormType }) {
         meta={{
           formName: isAudit ? 'Kitchen Audit' : 'Item Check List',
           kitchen,
-          clientId: draft.payload.clientId,
+          clientId: kitchen?.clientId ?? draft.payload.clientId,
           date: draft.payload.date,
           submittedByName: user.name,
         }}
