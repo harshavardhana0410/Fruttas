@@ -4,7 +4,7 @@ import { getKitchens, getRecords, toCsv } from '../lib/data'
 import { useMotionPreference, useSession, useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
-import { Badge } from '../components/ui/Badge'
+import { RoleBadge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Segmented } from '../components/ui/Segmented'
 
@@ -12,6 +12,7 @@ const THEME_KEY = 'frutta.theme.v1'
 
 export default function Settings() {
   const user = useUser()
+  const personal = user.role === 'staff' || user.role === 'chef'
   const { signOut } = useSession()
   const nav = useNavigate()
 
@@ -43,8 +44,8 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-[640px]">
-      <PageTitle sub={user.role === 'staff' ? 'Your account' : 'Account and preferences'}>
-        {user.role === 'staff' ? 'Profile' : 'Settings'}
+      <PageTitle sub={personal ? 'Your account' : 'Account and preferences'}>
+        {personal ? 'Profile' : 'Settings'}
       </PageTitle>
 
       <Section title="Account">
@@ -55,9 +56,7 @@ export default function Settings() {
           <span className="font-mono tabular text-[14px] text-ink-soft">{user.staffId}</span>
         </Row>
         <Row label="Role" description="Determines what you can see and change.">
-          <Badge tone={user.role === 'admin' ? 'fail' : user.role === 'manager' ? 'warn' : 'info'}>
-            {user.role}
-          </Badge>
+          <RoleBadge role={user.role} />
         </Row>
         <Row label="Assigned kitchen" description="Checklists are filed against this kitchen.">
           <span className="text-[14px]">{kitchen?.name ?? '—'}</span>

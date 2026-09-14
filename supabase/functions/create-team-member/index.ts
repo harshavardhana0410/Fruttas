@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
   const kitchenId = body.kitchenId ? String(body.kitchenId) : null
 
   if (!email || !name) return json({ error: 'Email and name are required' }, 400)
-  if (!['staff', 'manager', 'admin'].includes(role)) {
+  if (!['staff', 'manager', 'admin', 'chef'].includes(role)) {
     return json({ error: 'Invalid role' }, 400)
   }
 

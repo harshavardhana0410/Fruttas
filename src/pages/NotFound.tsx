@@ -15,9 +15,9 @@ export default function NotFound() {
       <Button
         variant="ghost"
         className="mt-5"
-        onClick={() => nav(role === 'staff' ? '/' : '/dashboard')}
+        onClick={() => nav('/')}
       >
-        {role === 'staff' ? 'Back to today' : 'Back to dashboard'}
+        {role === 'staff' ? 'Back to today' : role === 'chef' ? 'Back to item list' : 'Back to dashboard'}
       </Button>
     </div>
   )

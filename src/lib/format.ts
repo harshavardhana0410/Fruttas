@@ -1,3 +1,5 @@
+import type { Measuring } from './types'
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -46,33 +48,8 @@ export function daysAgo(n: number): string {
   return isoDate(d)
 }
 
-export interface Variance {
-  delta: number
-  percent: number
-  level: 'none' | 'minor' | 'major'
-  label: string
-}
-
-/**
- * Difference between planned and actual quantity.
- * Under 10% is minor, 10% or more is major.
- */
-export function variance(planned: string, actual: string): Variance | null {
-  const p = parseFloat(planned)
-  const a = parseFloat(actual)
-  if (!isFinite(p) || !isFinite(a) || p === 0) return null
-
-  const delta = a - p
-  if (delta === 0) return null
-
-  const percent = Math.abs(delta / p) * 100
-  const rounded = Math.round(delta * 100) / 100
-  return {
-    delta: rounded,
-    percent,
-    level: percent >= 10 ? 'major' : 'minor',
-    label: `${rounded > 0 ? '+' : ''}${rounded}`,
-  }
+export function measuringLabel(m: Measuring): string {
+  return m === 'tare' ? 'Tare' : 'Non-Tare'
 }
 
 export function pct(n: number): string {

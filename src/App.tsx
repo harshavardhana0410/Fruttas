@@ -14,6 +14,7 @@ import Kitchens from './pages/Kitchens'
 import KitchenDetail from './pages/KitchenDetail'
 import Team from './pages/Team'
 import Templates from './pages/Templates'
+import ItemList from './pages/ItemList'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import type { Role } from './lib/types'
@@ -34,7 +35,8 @@ function RequireRole({ roles }: { roles: Role[] }) {
 /** Staff land on Today; managers and admins land on the dashboard. */
 function Home() {
   const { role } = useSession()
-  return role === 'staff' ? <Today /> : <Navigate to="/dashboard" replace />
+  if (role === 'staff') return <Today />
+  return <Navigate to={role === 'chef' ? '/item-list' : '/dashboard'} replace />
 }
 
 export default function App() {
@@ -62,6 +64,10 @@ export default function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="kitchens" element={<Kitchens />} />
                 <Route path="kitchens/:id" element={<KitchenDetail />} />
+              </Route>
+
+              <Route element={<RequireRole roles={['chef', 'admin']} />}>
+                <Route path="item-list" element={<ItemList />} />
               </Route>
 
               <Route element={<RequireRole roles={['admin']} />}>

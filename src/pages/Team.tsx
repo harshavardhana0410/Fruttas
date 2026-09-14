@@ -6,7 +6,7 @@ import { useIsDesktop } from '../lib/useMediaQuery'
 import { stamp } from '../lib/format'
 import type { Role, User } from '../lib/types'
 import { PageTitle } from '../components/ui/Card'
-import { Badge } from '../components/ui/Badge'
+import { RoleBadge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import { Segmented } from '../components/ui/Segmented'
@@ -14,12 +14,11 @@ import { Sheet } from '../components/ui/Sheet'
 import { SkeletonRows } from '../components/ui/Feedback'
 import { cx } from '../lib/cx'
 
-const ROLE_TONE = { staff: 'info', manager: 'warn', admin: 'fail' } as const
-
 const ROLE_OPTIONS = [
   { value: 'staff' as Role, label: 'Staff' },
   { value: 'manager' as Role, label: 'Manager' },
   { value: 'admin' as Role, label: 'Admin' },
+  { value: 'chef' as Role, label: 'Chef' },
 ]
 
 export default function Team() {
@@ -67,7 +66,7 @@ export default function Team() {
                 </td>
                 <td className="px-3 py-3 font-mono tabular text-[13px] text-ink-soft">{u.staffId}</td>
                 <td className="px-3 py-3">
-                  <Badge tone={ROLE_TONE[u.role]}>{u.role}</Badge>
+                  <RoleBadge role={u.role} />
                 </td>
                 <td className="px-3 py-3 text-[13px] text-ink-soft">{kitchenName(u.kitchenId)}</td>
                 <td className="px-3 py-3 font-mono tabular text-[13px] text-ink-soft">
@@ -101,7 +100,7 @@ export default function Team() {
                   </p>
                   <p className="font-mono tabular text-[12px] text-ink-soft">{u.staffId}</p>
                 </div>
-                <Badge tone={ROLE_TONE[u.role]}>{u.role}</Badge>
+                <RoleBadge role={u.role} />
               </div>
 
               <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-hairline pt-3 text-[13px]">

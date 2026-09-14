@@ -2,7 +2,7 @@ import type { AuditAnswer, InspectionPoint, ItemEntry, Kitchen } from '../../lib
 import { Badge } from '../ui/Badge'
 import { Notice } from '../ui/Feedback'
 import { DefRow } from '../ui/Field'
-import { longDate, pad2, variance } from '../../lib/format'
+import { longDate, measuringLabel, pad2 } from '../../lib/format'
 
 interface Meta {
   formName: string
@@ -34,7 +34,7 @@ export function SubmissionDocument({
           .filter((x): x is { a: AuditAnswer; p: InspectionPoint } => Boolean(x.p) && x.a.value === 'no')
       : []
 
-  const notOk = items?.filter((i) => i.taste === 'notok') ?? []
+  const notOk = items?.filter((i) => i.value === 'no') ?? []
   const issueCount = failures.length + notOk.length
 
   return (
@@ -64,7 +64,7 @@ export function SubmissionDocument({
                 </li>
               ))}
               {notOk.map((i) => (
-                <li key={i.id}>{i.name} · taste marked Not Ok</li>
+                <li key={i.id}>{i.name} · marked No{i.remarks ? ` (${i.remarks})` : ''}</li>
               ))}
             </ul>
           </Notice>
@@ -134,7 +134,7 @@ function ItemsBody({ items }: { items: ItemEntry[] }) {
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-hairline bg-sunken">
-            {['No', 'Item', 'Planned', 'Actual', 'Variance', 'Taste', 'Measuring'].map((h) => (
+            {['No', 'Item', 'Quantity', 'Measuring', 'Check', 'Note'].map((h) => (
               <th key={h} scope="col" className="label-section px-2 py-2.5">
                 {h}
               </th>
@@ -142,44 +142,20 @@ function ItemsBody({ items }: { items: ItemEntry[] }) {
           </tr>
         </thead>
         <tbody>
-          {items.map((item, i) => {
-            const v = variance(item.plannedQty, item.actualQty)
-            return (
-              <tr key={item.id} className="border-b border-hairline print-block">
-                <td className="px-2 py-2.5 font-mono tabular text-[13px] text-ink-soft">
-                  {pad2(i + 1)}
-                </td>
-                <td className="px-2 py-2.5 text-[14px]">{item.name}</td>
-                <td className="px-2 py-2.5 font-mono tabular text-[13px]">
-                  {item.plannedQty} {item.unit}
-                </td>
-                <td className="px-2 py-2.5 font-mono tabular text-[13px]">
-                  {item.actualQty} {item.unit}
-                </td>
-                <td className="px-2 py-2.5">
-                  {v ? (
-                    <Badge
-                      plain
-                      tone={v.level === 'major' ? 'fail' : 'warn'}
-                      className="font-mono tabular"
-                    >
-                      {v.label} {item.unit}
-                    </Badge>
-                  ) : (
-                    <span className="text-[13px] text-ink-mute">—</span>
-                  )}
-                </td>
-                <td className="px-2 py-2.5">
-                  <Badge tone={item.taste === 'notok' ? 'fail' : 'pass'}>
-                    {item.taste === 'notok' ? 'Not Ok' : 'Ok'}
-                  </Badge>
-                </td>
-                <td className="px-2 py-2.5 text-[13px] text-ink-soft">
-                  {item.measuring === 'tare' ? 'Tare' : 'Non-Tare'}
-                </td>
-              </tr>
-            )
-          })}
+          {items.map((item, i) => (
+            <tr key={item.id} className="border-b border-hairline print-block">
+              <td className="px-2 py-2.5 font-mono tabular text-[13px] text-ink-soft">{pad2(i + 1)}</td>
+              <td className="px-2 py-2.5 text-[14px]">{item.name}</td>
+              <td className="px-2 py-2.5 font-mono tabular text-[13px]">
+                {item.quantity} {item.unit}
+              </td>
+              <td className="px-2 py-2.5 text-[13px] text-ink-soft">{measuringLabel(item.measuring)}</td>
+              <td className="px-2 py-2.5">
+                <Badge tone={item.value === 'no' ? 'fail' : 'pass'}>{item.value === 'no' ? 'No' : 'Yes'}</Badge>
+              </td>
+              <td className="px-2 py-2.5 text-[13px] text-ink-soft">{item.remarks || '—'}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

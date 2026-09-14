@@ -90,7 +90,7 @@ members, and the app is live.
 | `kitchens` | Sites. Carries its own `timezone` — see below |
 | `profiles` | One row per auth user. Role and kitchen assignment live here |
 | `inspection_points` | The audit template. Archived, never deleted |
-| `item_presets` | Suggestions offered while filling the item list |
+| `kitchen_items` | Each kitchen's standing item list, edited only by its chef or an admin; locks once today's check is filed |
 | `submissions` | One row per filed form. Immutable |
 | `audit_answers` | 16 rows per audit, with the point wording snapshotted |
 | `submission_items` | The item rows of an item check list |

@@ -2,25 +2,22 @@ import { useEffect, useState } from 'react'
 import { CaretRight, DotsSixVertical, Plus, Trash, ArrowLeft } from '@phosphor-icons/react'
 import {
   getAuditTemplate,
-  getItemPresets,
-  saveItemPresets,
   saveTemplate,
 } from '../lib/data'
 import { useAsync } from '../lib/useAsync'
 import { pad2 } from '../lib/format'
-import type { InspectionPoint, ItemPreset } from '../lib/types'
-import { PageTitle, SectionLabel } from '../components/ui/Card'
+import type { InspectionPoint } from '../lib/types'
+import { PageTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Feedback'
 import { cx } from '../lib/cx'
 
-type View = 'index' | 'audit' | 'items'
+type View = 'index' | 'audit'
 
 export default function Templates() {
   const [view, setView] = useState<View>('index')
 
   if (view === 'audit') return <AuditTemplate onBack={() => setView('index')} />
-  if (view === 'items') return <ItemsTemplate onBack={() => setView('index')} />
 
   return (
     <>
@@ -34,12 +31,6 @@ export default function Templates() {
           detail="16 inspection points across 6 sections"
           onOpen={() => setView('audit')}
           index={0}
-        />
-        <TemplateCard
-          title="Item Check List"
-          detail="Preset items and units offered while filling"
-          onOpen={() => setView('items')}
-          index={1}
         />
       </div>
     </>
@@ -373,115 +364,3 @@ function Toggle({
 }
 
 /* ---------------- Item preset editor ---------------- */
-
-const COLUMNS = ['Serial No', 'Item Name', 'Planned Qty', 'Actual Qty', 'Taste', 'Measuring Type']
-
-function ItemsTemplate({ onBack }: { onBack: () => void }) {
-  const { data, reload } = useAsync(() => getItemPresets(), [])
-  const [presets, setPresets] = useState<ItemPreset[] | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    if (data) setPresets(data)
-  }, [data])
-
-  if (!presets || !data) {
-    return (
-      <>
-        <BackLink onBack={onBack} label="Templates" />
-        <Skeleton className="h-9 w-56" />
-        <Skeleton className="mt-6 h-64" />
-      </>
-    )
-  }
-
-  const changed =
-    presets.length !== data.length ||
-    presets.some((p, i) => p.name !== data[i]?.name || p.unit !== data[i]?.unit)
-
-  return (
-    <>
-      <BackLink onBack={onBack} label="Templates" />
-      <PageTitle sub="Items offered as suggestions while filling the check list.">
-        Item Check List
-      </PageTitle>
-
-      <section className="mb-8">
-        <SectionLabel>Columns</SectionLabel>
-        <p className="mb-3 mt-1 text-[13px] text-ink-soft">
-          These are fixed — they mirror the printed sheet.
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {COLUMNS.map((c) => (
-            <span
-              key={c}
-              className="rounded-chip border border-hairline bg-sunken px-2.5 py-1 font-mono text-[12px] text-ink-soft"
-            >
-              {c}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <SectionLabel>Preset items ({presets.length})</SectionLabel>
-      <div className={cx('mt-2 border-t border-hairline', changed && 'pb-20')}>
-        {presets.map((p, i) => (
-          <div key={i} className="flex items-center gap-2 border-b border-hairline py-1.5">
-            <span className="w-6 shrink-0 font-mono tabular text-[12px] text-ink-soft">
-              {pad2(i + 1)}
-            </span>
-            <input
-              value={p.name}
-              aria-label={`Preset item ${i + 1} name`}
-              onChange={(e) =>
-                setPresets(presets.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
-              }
-              className="min-w-0 flex-1 rounded-control border border-transparent bg-transparent px-2 py-1.5 text-[14px] outline-none transition-colors hover:border-hairline hover:bg-sunken focus-visible:border-hairline focus-visible:bg-sunken"
-            />
-            <select
-              value={p.unit}
-              aria-label={`Preset item ${i + 1} unit`}
-              onChange={(e) =>
-                setPresets(presets.map((x, j) => (j === i ? { ...x, unit: e.target.value } : x)))
-              }
-              className="cursor-pointer rounded-control border border-hairline bg-surface px-2 py-1.5 text-[13px] text-ink-soft outline-none"
-            >
-              {['kg', 'L', 'pcs'].map((u) => (
-                <option key={u}>{u}</option>
-              ))}
-            </select>
-            <button
-              onClick={() => setPresets(presets.filter((_, j) => j !== i))}
-              aria-label={`Delete preset ${p.name}`}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-mute transition-colors hover:bg-sunken hover:text-fail-fg"
-            >
-              <Trash size={15} />
-            </button>
-          </div>
-        ))}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2"
-          onClick={() => setPresets([...presets, { name: '', unit: 'kg' }])}
-        >
-          <Plus size={14} />
-          Add item
-        </Button>
-      </div>
-
-      <UnsavedBar
-        count={changed ? 1 : 0}
-        busy={busy}
-        onDiscard={() => setPresets(data)}
-        onSave={async () => {
-          setBusy(true)
-          await saveItemPresets(presets.filter((p) => p.name.trim()))
-          setBusy(false)
-          reload()
-        }}
-      />
-    </>
-  )
-}

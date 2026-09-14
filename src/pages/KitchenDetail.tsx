@@ -8,7 +8,7 @@ import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { MetricTile } from '../components/data/MetricTile'
 import { ComplianceStrip } from '../components/data/Compliance'
 import { RecordRow } from '../components/data/RecordRow'
-import { Badge } from '../components/ui/Badge'
+import { RoleBadge } from '../components/ui/Badge'
 import { EmptyState, Skeleton, SkeletonRows } from '../components/ui/Feedback'
 
 export default function KitchenDetail() {
@@ -127,9 +127,7 @@ export default function KitchenDetail() {
                   <p className="truncate text-[14px]">{u.name}</p>
                   <p className="font-mono tabular text-[12px] text-ink-soft">{u.staffId}</p>
                 </div>
-                <Badge tone={u.role === 'admin' ? 'fail' : u.role === 'manager' ? 'warn' : 'info'}>
-                  {u.role}
-                </Badge>
+                <RoleBadge role={u.role} />
               </li>
             ))}
           </ul>

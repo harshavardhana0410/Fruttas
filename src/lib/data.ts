@@ -5,10 +5,11 @@ import type {
   FormStatus,
   FormType,
   InspectionPoint,
-  ItemPreset,
   ItemsPayload,
   Kitchen,
+  KitchenItem,
   KitchenDetail,
+  Measuring,
   RecordFilters,
   Role,
   Submission,
@@ -118,12 +119,13 @@ interface SubmissionRow {
   submission_items?: {
     id: string
     serial: number
+    item_id: string | null
     name: string
-    planned_qty: string | number
-    actual_qty: string | number
+    quantity: string | number
     unit: string
-    taste: 'ok' | 'notok'
-    measuring: 'tare' | 'non-tare'
+    measuring: Measuring
+    result: 'yes' | 'no'
+    remarks: string
   }[]
 }
 
@@ -166,13 +168,13 @@ function toSubmission(r: SubmissionRow): Submission {
     items: (r.submission_items ?? [])
       .sort((a, b) => a.serial - b.serial)
       .map((i) => ({
-        id: i.id,
+        id: i.item_id ?? i.id,
         name: i.name,
-        plannedQty: String(i.planned_qty),
-        actualQty: String(i.actual_qty),
+        quantity: String(i.quantity),
         unit: i.unit,
-        taste: i.taste,
         measuring: i.measuring,
+        value: i.result,
+        remarks: i.remarks,
       })),
   }
 }
@@ -268,14 +270,34 @@ export async function getAuditTemplate(): Promise<InspectionPoint[]> {
   return (data as PointRow[]).map(toPoint)
 }
 
-export async function getItemPresets(): Promise<ItemPreset[]> {
+export async function getKitchenItems(kitchenId: string): Promise<KitchenItem[]> {
+  if (!kitchenId) return []
   const { data, error } = await supabase
-    .from('item_presets')
-    .select('name, unit')
+    .from('kitchen_items')
+    .select('id, name, quantity, unit, measuring')
+    .eq('kitchen_id', kitchenId)
     .order('sort_order')
+    .order('created_at')
 
-  if (error) fail('Loading item presets', error)
-  return data as ItemPreset[]
+  if (error) fail('Loading the item list', error)
+  return (data as (Omit<KitchenItem, 'quantity'> & { quantity: number | string })[]).map((r) => ({
+    ...r,
+    quantity: String(r.quantity),
+  }))
+}
+
+/** True once today's item check is filed. The database then refuses list edits. */
+export async function isItemListLocked(kitchenId: string): Promise<boolean> {
+  if (!kitchenId) return false
+  const { count, error } = await supabase
+    .from('submissions')
+    .select('id', { count: 'exact', head: true })
+    .eq('kitchen_id', kitchenId)
+    .eq('type', 'items')
+    .eq('form_date', isoDate())
+
+  if (error) fail("Checking today's item check", error)
+  return (count ?? 0) > 0
 }
 
 export async function getKitchens(): Promise<Kitchen[]> {
@@ -384,7 +406,7 @@ export async function getRecordById(id: string): Promise<Submission | null> {
       `${SUBMISSION_COLUMNS},
        audit_answers ( point_id, point_serial, point_text, value, remarks,
                        answer_photos ( storage_path ) ),
-       submission_items ( id, serial, name, planned_qty, actual_qty, unit, taste, measuring )`,
+       submission_items ( id, serial, item_id, name, quantity, unit, measuring, result, remarks )`,
     )
     .eq('id', id)
     .maybeSingle()
@@ -524,14 +546,9 @@ async function uploadAuditPhotos(submissionId: string, payload: AuditPayload): P
 
 export async function submitItemList(payload: ItemsPayload, _user: User): Promise<Submission> {
   const { data, error } = await supabase.rpc('submit_item_list', {
-    p_items: payload.items.map((i) => ({
-      name: i.name,
-      plannedQty: i.plannedQty,
-      actualQty: i.actualQty,
-      unit: i.unit,
-      taste: i.taste,
-      measuring: i.measuring,
-    })),
+    // Only the answers travel. The database fills in each item from the
+    // chef's current list, so a stale or edited client copy cannot be filed.
+    p_items: payload.items.map((i) => ({ itemId: i.id, value: i.value, remarks: i.remarks })),
   })
   if (error) fail('Submitting the item check list', error)
 
@@ -570,20 +587,28 @@ export async function saveTemplate(points: InspectionPoint[]): Promise<Inspectio
   return getAuditTemplate()
 }
 
-export async function saveItemPresets(presets: ItemPreset[]): Promise<ItemPreset[]> {
-  const { error: wipe } = await supabase
-    .from('item_presets')
-    .delete()
-    .gte('sort_order', 0)
-  if (wipe) fail('Updating item presets', wipe)
-
-  if (presets.length > 0) {
-    const { error } = await supabase
-      .from('item_presets')
-      .insert(presets.map((p, i) => ({ name: p.name, unit: p.unit, sort_order: i })))
-    if (error) fail('Saving item presets', error)
+export async function saveKitchenItem(
+  kitchenId: string,
+  item: Omit<KitchenItem, 'id'> & { id?: string; sortOrder?: number },
+): Promise<void> {
+  const row = {
+    name: item.name.trim(),
+    quantity: Number(item.quantity),
+    unit: item.unit,
+    measuring: item.measuring,
   }
-  return getItemPresets()
+  const { error } = item.id
+    ? await supabase.from('kitchen_items').update(row).eq('id', item.id)
+    : await supabase
+        .from('kitchen_items')
+        .insert({ ...row, kitchen_id: kitchenId, sort_order: item.sortOrder ?? 0 })
+
+  if (error) fail('Saving the item', error)
+}
+
+export async function deleteKitchenItem(id: string): Promise<void> {
+  const { error } = await supabase.from('kitchen_items').delete().eq('id', id)
+  if (error) fail('Removing the item', error)
 }
 
 export async function addKitchen(input: Omit<Kitchen, 'id'>): Promise<Kitchen> {

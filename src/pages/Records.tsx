@@ -24,7 +24,7 @@ const SELECT =
 
 export default function Records() {
   const user = useUser()
-  const canSeeAll = user.role !== 'staff'
+  const canSeeAll = user.role === 'manager' || user.role === 'admin'
 
   const [filters, setFilters] = useState<RecordFilters>({ type: 'all', status: 'all' })
   const [query, setQuery] = useState('')

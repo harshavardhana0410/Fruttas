@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { cx } from '../../lib/cx'
+import type { Role } from '../../lib/types'
 
 export type Tone = 'pass' | 'fail' | 'warn' | 'info' | 'neutral'
 
@@ -52,4 +53,10 @@ export function IssueBadge({ count }: { count: number }) {
       {count} {count === 1 ? 'issue' : 'issues'}
     </Badge>
   )
+}
+
+const ROLE_TONE: Record<Role, Tone> = { staff: 'info', manager: 'warn', admin: 'fail', chef: 'pass' }
+
+export function RoleBadge({ role }: { role: Role }) {
+  return <Badge tone={ROLE_TONE[role]}>{role}</Badge>
 }

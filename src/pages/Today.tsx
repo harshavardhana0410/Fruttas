@@ -84,7 +84,7 @@ function TodayContent() {
           to="/items/new"
           icon={<ClipboardText size={20} />}
           title="Item Check List"
-          detail="Log planned against actual quantities"
+          detail="Check the chef's items, Yes or No"
           status={data.items.status}
           submissionId={data.items.submissionId}
           index={1}

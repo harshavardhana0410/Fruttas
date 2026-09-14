@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   ClipboardText,
+  CookingPot,
   DotsThree,
   Gear,
   GridFour,
@@ -32,12 +33,13 @@ const SIZE = 20
 const NAV: NavItem[] = [
   { to: '/', label: 'Today', icon: <ListChecks size={SIZE} />, roles: ['staff'], end: true },
   { to: '/dashboard', label: 'Dashboard', icon: <GridFour size={SIZE} />, roles: ['manager', 'admin'] },
-  { to: '/records', label: 'Records', icon: <ClipboardText size={SIZE} />, roles: ['staff', 'manager', 'admin'] },
+  { to: '/item-list', label: 'Item List', icon: <CookingPot size={SIZE} />, roles: ['chef', 'admin'] },
+  { to: '/records', label: 'Records', icon: <ClipboardText size={SIZE} />, roles: ['staff', 'manager', 'admin', 'chef'] },
   { to: '/kitchens', label: 'Kitchens', icon: <Storefront size={SIZE} />, roles: ['manager', 'admin'] },
   { to: '/team', label: 'Team', icon: <Users size={SIZE} />, roles: ['admin'] },
   { to: '/templates', label: 'Templates', icon: <Sliders size={SIZE} />, roles: ['admin'] },
   { to: '/settings', label: 'Settings', icon: <Gear size={SIZE} />, roles: ['manager', 'admin'] },
-  { to: '/settings', label: 'Profile', icon: <User size={SIZE} />, roles: ['staff'] },
+  { to: '/settings', label: 'Profile', icon: <User size={SIZE} />, roles: ['staff', 'chef'] },
 ]
 
 function itemsFor(role: Role) {

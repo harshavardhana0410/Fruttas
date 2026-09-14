@@ -1,9 +1,8 @@
-export type Role = 'staff' | 'manager' | 'admin'
+export type Role = 'staff' | 'manager' | 'admin' | 'chef'
 
 export type FormType = 'audit' | 'items'
 
 export type YesNo = 'yes' | 'no'
-export type Taste = 'ok' | 'notok'
 export type Measuring = 'tare' | 'non-tare'
 
 export type FormStatus = 'not-started' | 'in-progress' | 'submitted'
@@ -41,19 +40,19 @@ export interface AuditAnswer {
   photos: string[]
 }
 
-export interface ItemEntry {
+/** One line on a kitchen's standing item list. Only its chef or an admin edits it. */
+export interface KitchenItem {
   id: string
   name: string
-  plannedQty: string
-  actualQty: string
+  quantity: string
   unit: string
-  taste: Taste | null
-  measuring: Measuring | null
+  measuring: Measuring
 }
 
-export interface ItemPreset {
-  name: string
-  unit: string
+/** A staff member's Yes/No check of one kitchen item. */
+export interface ItemEntry extends KitchenItem {
+  value: YesNo | null
+  remarks: string
 }
 
 export interface AuditPayload {
