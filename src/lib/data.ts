@@ -623,12 +623,25 @@ export async function addKitchen(input: Omit<Kitchen, 'id'>): Promise<Kitchen> {
 }
 
 /**
- * Editing an existing member is a plain update. CREATING one needs an
- * auth.users row, which requires the service_role key — so that path goes
- * through the create-team-member Edge Function instead.
+ * The team Edge Function. Its errors carry the real reason in the response
+ * body, so read that out instead of showing a generic "non-2xx" message.
+ */
+async function callTeamFunction<T>(body: Record<string, unknown>, context: string): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('create-team-member', { body })
+  if (error) {
+    const res = (error as { context?: Response }).context
+    const detail = res ? ((await res.json().catch(() => null)) as { error?: string } | null) : null
+    fail(context, { message: detail?.error ?? error.message })
+  }
+  return data as T
+}
+
+/**
+ * Editing an existing member is a plain update. Creating one, and setting a
+ * password, need the service_role key, so those go through the Edge Function.
  */
 export async function upsertUser(
-  input: Omit<User, 'id' | 'lastActive'> & { id?: string; email?: string },
+  input: Omit<User, 'id' | 'lastActive'> & { id?: string; email?: string; password?: string },
 ): Promise<User> {
   if (input.id) {
     const { data, error } = await supabase
@@ -646,31 +659,36 @@ export async function upsertUser(
 
     if (error) fail('Saving the team member', error)
 
+    if (input.password) {
+      await callTeamFunction(
+        { action: 'set-password', userId: input.id, password: input.password },
+        'Setting the password',
+      )
+    }
+
     // Revoking access must also end the session, not just hide the row.
     if (!input.active) {
-      await supabase.functions.invoke('create-team-member', {
-        body: { action: 'deactivate', userId: input.id },
-      })
+      await callTeamFunction({ action: 'deactivate', userId: input.id }, 'Deactivating the member')
     }
     return toUser(data as ProfileRow)
   }
 
-  if (!input.email) {
-    throw new Error('An email address is required to create an account.')
-  }
+  if (!input.email) throw new Error('An email address is required to create an account.')
+  if (!input.password) throw new Error('A password is required to create an account.')
 
-  const { data, error } = await supabase.functions.invoke('create-team-member', {
-    body: {
+  const data = await callTeamFunction<{ profile: ProfileRow }>(
+    {
       action: 'create',
       email: input.email,
+      password: input.password,
       name: input.name,
       staffId: input.staffId,
       role: input.role,
       kitchenId: input.kitchenId || null,
     },
-  })
-  if (error) fail('Creating the team member', error as { message: string })
-  return toUser((data as { profile: ProfileRow }).profile)
+    'Creating the team member',
+  )
+  return toUser(data.profile)
 }
 
 /* ---------------------------------------------------------------

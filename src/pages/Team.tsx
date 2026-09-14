@@ -180,6 +180,7 @@ function MemberSheet({
   const [form, setForm] = useState({
     name: '',
     email: '',
+    password: '',
     staffId: '',
     role: 'staff' as Role,
     kitchenId: '',
@@ -195,17 +196,20 @@ function MemberSheet({
         ? {
             name: editing.name,
             email: '',
+            password: '',
             staffId: editing.staffId,
             role: editing.role,
             kitchenId: editing.kitchenId,
           }
-        : { name: '', email: '', staffId: '', role: 'staff', kitchenId: kitchens[0]?.id ?? '' },
+        : { name: '', email: '', password: '', staffId: '', role: 'staff', kitchenId: kitchens[0]?.id ?? '' },
     )
   }
 
   async function save() {
     if (!form.name.trim()) return setError('Name is required.')
     if (!editing && !form.email.trim()) return setError('Email is required for a new account.')
+    if (!editing && !form.password) return setError('Set a password so they can sign in.')
+    if (form.password && form.password.length < 8) return setError('Password must be at least 8 characters.')
 
     setBusy(true)
     setError('')
@@ -214,6 +218,7 @@ function MemberSheet({
         id: editing?.id,
         name: form.name.trim(),
         email: form.email.trim() || undefined,
+        password: form.password || undefined,
         staffId: form.staffId.trim(),
         role: form.role,
         kitchenId: form.kitchenId,
@@ -258,7 +263,7 @@ function MemberSheet({
         {!editing && (
           <Field
             label="Email"
-            hint="They set their own password from a link sent to this address."
+            hint="They sign in with this email."
           >
             {(id) => (
               <Input
@@ -273,6 +278,25 @@ function MemberSheet({
             )}
           </Field>
         )}
+
+        <Field
+          label={editing ? 'New password' : 'Password'}
+          hint={
+            editing
+              ? 'Leave blank to keep their current password.'
+              : 'At least 8 characters. Give it to them; they sign in with their email and this password.'
+          }
+        >
+          {(id) => (
+            <Input
+              id={id}
+              type="password"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+          )}
+        </Field>
 
         <Field label="Staff ID" hint={editing ? undefined : 'Leave blank to assign one automatically.'}>
           {(id) => (

@@ -85,6 +85,24 @@ Deno.serve(async (req) => {
     return json({ ok: true })
   }
 
+  const password = String(body.password ?? '')
+  const MIN_PASSWORD = 8
+
+  // --------------------------------------------------------------------
+  // SET PASSWORD — the admin sets or resets a member's password directly.
+  // No email service is configured, so a reset link would never arrive.
+  // --------------------------------------------------------------------
+  if (body.action === 'set-password') {
+    const userId = String(body.userId ?? '')
+    if (!userId) return json({ error: 'userId is required' }, 400)
+    if (password.length < MIN_PASSWORD) {
+      return json({ error: `Password must be at least ${MIN_PASSWORD} characters.` }, 400)
+    }
+    const { error } = await admin.auth.admin.updateUserById(userId, { password })
+    if (error) return json({ error: error.message }, 400)
+    return json({ ok: true })
+  }
+
   // --------------------------------------------------------------------
   // CREATE
   // --------------------------------------------------------------------
@@ -97,17 +115,17 @@ Deno.serve(async (req) => {
   const kitchenId = body.kitchenId ? String(body.kitchenId) : null
 
   if (!email || !name) return json({ error: 'Email and name are required' }, 400)
+  if (password.length < MIN_PASSWORD) {
+    return json({ error: `Password must be at least ${MIN_PASSWORD} characters.` }, 400)
+  }
   if (!['staff', 'manager', 'admin', 'chef'].includes(role)) {
     return json({ error: 'Invalid role' }, 400)
   }
 
-  // A password nobody knows, including us. The member sets their own via the
-  // recovery link below, so a credential is never transmitted or logged.
-  const tempPassword = crypto.randomUUID() + crypto.randomUUID()
-
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
-    password: tempPassword,
+    // Chosen by the admin, who passes it on. Arrives over HTTPS; never stored or logged here.
+    password,
     email_confirm: true,
     user_metadata: { name },
   })
@@ -134,8 +152,6 @@ Deno.serve(async (req) => {
     await admin.auth.admin.deleteUser(created.user.id)
     return json({ error: profileError.message }, 400)
   }
-
-  await admin.auth.admin.generateLink({ type: 'recovery', email })
 
   return json({ profile })
 })
