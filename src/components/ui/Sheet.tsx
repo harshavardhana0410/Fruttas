@@ -55,7 +55,7 @@ export function Sheet({
   return (
     <div className="fixed inset-0 z-50 no-print">
       <div
-        className="absolute inset-0 bg-ink/10"
+        className="absolute inset-0 bg-scrim"
         onClick={onClose}
         aria-hidden
       />
@@ -121,7 +121,7 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5 no-print">
-      <div className="absolute inset-0 bg-ink/10" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-scrim" onClick={onClose} aria-hidden />
       <div
         role="alertdialog"
         aria-modal="true"

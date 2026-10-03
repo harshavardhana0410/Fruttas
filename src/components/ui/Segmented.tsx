@@ -29,7 +29,7 @@ const SELECTED: Record<Tone, string> = {
   fail: 'bg-fail-bg text-fail-fg border-fail-fg',
   warn: 'bg-warn-bg text-warn-fg border-warn-fg',
   info: 'bg-info-bg text-info-fg border-info-fg',
-  neutral: 'bg-ink text-white border-ink',
+  neutral: 'bg-ink text-canvas border-ink',
 }
 
 /**

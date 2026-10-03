@@ -55,6 +55,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Applied here so the theme is right on every screen from first paint,
+  // not only while Settings is open.
+  useThemePreference()
+
   // An admin assigning a kitchen or changing a role reaches this person
   // without them signing out and back in.
   useTableStream('profiles', () => {
@@ -91,6 +95,52 @@ export function useUser(): User {
   const { user } = useSession()
   if (!user) throw new Error('useUser called outside an authenticated route')
   return user
+}
+
+const THEME_KEY = 'frutta.theme.v1'
+
+export type ThemeChoice = 'light' | 'dark' | 'system'
+
+/**
+ * Light, dark, or follow the device. The choice is resolved here and stamped
+ * on <html> as data-theme, so the stylesheet needs one dark rule rather than
+ * one per source of truth.
+ */
+export function useThemePreference() {
+  const [choice, setChoice] = useState<ThemeChoice>(() => {
+    try {
+      const stored = localStorage.getItem(THEME_KEY)
+      return stored === 'light' || stored === 'dark' ? stored : 'system'
+    } catch {
+      return 'system'
+    }
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+
+    const apply = () => {
+      const dark = choice === 'dark' || (choice === 'system' && media.matches)
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      // Keeps the phone's browser chrome in step with the page.
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', dark ? '#141413' : '#fbfbfa')
+    }
+
+    apply()
+    try {
+      localStorage.setItem(THEME_KEY, choice)
+    } catch {
+      /* ignore */
+    }
+
+    if (choice !== 'system') return
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [choice])
+
+  return [choice, setChoice] as const
 }
 
 const MOTION_KEY = 'frutta.motion.v1'

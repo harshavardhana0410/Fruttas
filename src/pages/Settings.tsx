@@ -1,14 +1,11 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getKitchens, getRecords, toCsv } from '../lib/data'
-import { useMotionPreference, useSession, useUser } from '../lib/session'
+import { useMotionPreference, useSession, useThemePreference, useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { RoleBadge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Segmented } from '../components/ui/Segmented'
-
-const THEME_KEY = 'frutta.theme.v1'
 
 export default function Settings() {
   const user = useUser()
@@ -17,13 +14,7 @@ export default function Settings() {
   const nav = useNavigate()
 
   const [reduced, setReduced] = useMotionPreference()
-  const [theme, setTheme] = useState<'light' | 'system'>(() => {
-    try {
-      return (localStorage.getItem(THEME_KEY) as 'light' | 'system') ?? 'system'
-    } catch {
-      return 'system'
-    }
-  })
+  const [theme, setTheme] = useThemePreference()
 
   const { data: kitchens } = useAsync(() => getKitchens(), [])
   const kitchen = kitchens?.find((k) => k.id === user.kitchenId)
@@ -64,22 +55,16 @@ export default function Settings() {
       </Section>
 
       <Section title="Preferences">
-        <Row label="Theme" description="Dark mode arrives in a later phase.">
+        <Row label="Theme" description="System follows your phone or computer.">
           <Segmented
             size="sm"
-            className="w-[180px]"
+            className="w-[210px]"
             label="Theme"
             value={theme}
-            onChange={(v) => {
-              setTheme(v)
-              try {
-                localStorage.setItem(THEME_KEY, v)
-              } catch {
-                /* ignore */
-              }
-            }}
+            onChange={setTheme}
             options={[
               { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
               { value: 'system', label: 'System' },
             ]}
           />
@@ -147,7 +132,7 @@ function Row({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-16 items-center justify-between gap-6 border-b border-hairline py-3">
+    <div className="flex min-h-16 flex-col justify-center gap-2 border-b border-hairline py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div className="min-w-0">
         <p className="text-[14px]">{label}</p>
         <p className="mt-0.5 text-[13px] text-ink-soft">{description}</p>

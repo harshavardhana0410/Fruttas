@@ -42,6 +42,10 @@
   --radius-control: 6px;
   --radius-chip: 4px;
 
+  /* Dialog and sheet backdrop. A token, not ink/10: ink flips light in
+     dark mode and a pale scrim would wash the screen out. */
+  --color-scrim: rgba(17, 17, 17, 0.10);
+
   /* The only two permitted shadows in the entire app */
   --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.04);
   --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.06);
@@ -255,4 +259,43 @@
   a[href]::after {
     content: '';
   }
+}
+
+/* ============================================================
+   DARK THEME
+
+   Only the tokens change, so every utility follows. The choice is
+   resolved in JS (Light / Dark / System) and stamped on <html> as
+   data-theme, so there is one rule here rather than two.
+   ============================================================ */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Surfaces — warm near-black, never pure #000 */
+  --color-canvas: #141413;
+  --color-surface: #1c1b19;
+  --color-sunken: #232220;
+  --color-hairline: #322f2c;
+
+  /* Text — never pure white */
+  --color-ink: #f0efec;
+  --color-ink-soft: #a8a49d;
+  --color-ink-mute: #726e68;
+
+  /* Semantic pastels, darkened to sit on the dark canvas */
+  --color-pass-bg: #1b2a1d;
+  --color-pass-fg: #8fcf97;
+  --color-fail-bg: #2e1c1d;
+  --color-fail-fg: #f0a6a3;
+  --color-warn-bg: #2b2316;
+  --color-warn-fg: #e3b765;
+  --color-info-bg: #15262f;
+  --color-info-fg: #8ec7ea;
+
+  --color-scrim: rgba(0, 0, 0, 0.55);
+
+  /* Shadows read as light on a dark ground, so lean on the hairline. */
+  --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.55);
 }
