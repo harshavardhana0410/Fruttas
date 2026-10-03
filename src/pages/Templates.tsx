@@ -136,7 +136,13 @@ function AuditTemplate({ onBack }: { onBack: () => void }) {
   }
 
   const changes = countChanges(data, points)
-  const sections = [...new Set(points.map((p) => p.section))]
+  // Keyed by the first point's id, never by the name. A name key changes on
+  // every keystroke, so React discarded the heading input mid-typing and
+  // focus was lost after each letter.
+  const sections = points.reduce<{ name: string; key: string }[]>((acc, p) => {
+    if (!acc.some((s) => s.name === p.section)) acc.push({ name: p.section, key: p.id })
+    return acc
+  }, [])
 
   function move(from: number, to: number) {
     if (to < 0 || to >= points!.length) return
@@ -185,19 +191,19 @@ function AuditTemplate({ onBack }: { onBack: () => void }) {
       </PageTitle>
 
       <div className={cx(changes > 0 && 'pb-20')}>
-        {sections.map((section) => (
-          <section key={section} className="mb-6">
+        {sections.map(({ name, key }) => (
+          <section key={key} className="mb-6">
             <input
-              value={section}
-              aria-label={`Section name: ${section}`}
-              onChange={(e) => renameSection(section, e.target.value)}
+              value={name}
+              aria-label={`Section name: ${name}`}
+              onChange={(e) => renameSection(name, e.target.value)}
               className="label-section w-full rounded-control border border-transparent bg-transparent py-2 outline-none transition-colors hover:border-hairline hover:bg-sunken focus-visible:border-hairline focus-visible:bg-sunken"
             />
 
             <div className="border-t border-hairline">
               {points
                 .map((p, i) => ({ p, i }))
-                .filter(({ p }) => p.section === section)
+                .filter(({ p }) => p.section === name)
                 .map(({ p, i }) => (
                   <div
                     key={p.id}
@@ -283,7 +289,7 @@ function AuditTemplate({ onBack }: { onBack: () => void }) {
                 ))}
             </div>
 
-            <Button variant="ghost" size="sm" className="mt-2" onClick={() => addPoint(section)}>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={() => addPoint(name)}>
               <Plus size={14} />
               Add inspection point
             </Button>
