@@ -28,7 +28,6 @@ export default function Templates() {
       <div className="grid gap-3 lg:grid-cols-2">
         <TemplateCard
           title="Kitchen Audit"
-          detail="16 inspection points across 6 sections"
           onOpen={() => setView('audit')}
           index={0}
         />
@@ -39,12 +38,10 @@ export default function Templates() {
 
 function TemplateCard({
   title,
-  detail,
   onOpen,
   index,
 }: {
   title: string
-  detail: string
   onOpen: () => void
   index: number
 }) {
@@ -54,10 +51,7 @@ function TemplateCard({
       style={{ '--i': index } as React.CSSProperties}
       className="animate-enter flex items-center justify-between gap-4 rounded-card border border-hairline bg-surface p-6 text-left transition-shadow duration-200 hover:shadow-lift"
     >
-      <div>
-        <p className="text-[17px] font-medium">{title}</p>
-        <p className="mt-0.5 text-[13px] text-ink-soft">{detail}</p>
-      </div>
+      <p className="text-[17px] font-medium">{title}</p>
       <CaretRight size={16} className="shrink-0 text-ink-mute" />
     </button>
   )
