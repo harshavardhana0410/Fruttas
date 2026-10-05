@@ -1,8 +1,8 @@
-import type { AuditAnswer, InspectionPoint, ItemEntry, Kitchen } from '../../lib/types'
+import type { AuditAnswer, InspectionPoint, ItemEntry, Kitchen, YesNo } from '../../lib/types'
 import { Badge } from '../ui/Badge'
 import { Notice } from '../ui/Feedback'
 import { DefRow } from '../ui/Field'
-import { longDate, measuringLabel, pad2 } from '../../lib/format'
+import { auditStatus, longDate, measuringLabel, pad2, pct } from '../../lib/format'
 
 interface Meta {
   formName: string
@@ -37,6 +37,14 @@ export function SubmissionDocument({
   const notOk = items?.filter((i) => i.value === 'no') ?? []
   const issueCount = failures.length + notOk.length
 
+  // Scored out of however many points the checklist holds, so the totals
+  // follow the template rather than a fixed number.
+  const checks: { value: YesNo | null }[] = answers ?? items ?? []
+  const total = checks.length
+  const completed = checks.filter((c) => c.value === 'yes').length
+  const score = total ? Math.round((completed / total) * 100) : 0
+  const status = auditStatus(score)
+
   return (
     <div className="print-full">
       <dl className="mb-6 rounded-card border border-hairline bg-surface px-4 py-1 print-block">
@@ -48,6 +56,25 @@ export function SubmissionDocument({
         <DefRow term="Date">{longDate(meta.date)}</DefRow>
         <DefRow term="Submitted by">{meta.submittedByName}</DefRow>
       </dl>
+
+      {total > 0 && (
+        <div className="mb-6 rounded-card border border-hairline bg-surface p-5 print-block">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="label-section">Overall status</p>
+              <p className="title-editorial mt-1 text-[30px]">{status.label}</p>
+            </div>
+            <Badge tone={status.tone}>{pct(score)}</Badge>
+          </div>
+
+          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-3 sm:grid-cols-4">
+            <Figure label="Points checked" value={total} />
+            <Figure label="Completed" value={completed} />
+            <Figure label="Not completed" value={total - completed} />
+            <Figure label="Marks" value={`${completed} / ${total}`} />
+          </dl>
+        </div>
+      )}
 
       <div className="mb-6 print-block">
         {issueCount === 0 ? (
@@ -73,6 +100,15 @@ export function SubmissionDocument({
 
       {answers && points && <AuditBody points={points} answers={answers} />}
       {items && <ItemsBody items={items} />}
+    </div>
+  )
+}
+
+function Figure({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div>
+      <dt className="label-section">{label}</dt>
+      <dd className="mt-0.5 font-mono tabular text-[17px]">{value}</dd>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { getDashboardMetrics, getKitchens } from '../lib/data'
 import { useAsync } from '../lib/useAsync'
 import { useRecordStream } from '../lib/useRealtime'
-import { longDate, isoDate, pad2, pct, signed } from '../lib/format'
+import { auditStatus, longDate, isoDate, pad2, pct, signed } from '../lib/format'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { MetricTile } from '../components/data/MetricTile'
 import { ComplianceBar } from '../components/data/Compliance'
@@ -50,8 +50,8 @@ export default function Dashboard() {
           index={1}
           label="Compliance rate"
           value={pct(data.complianceRate)}
-          delta={signed(data.complianceDelta, ' pts')}
-          tone={data.complianceDelta < 0 ? 'fail' : data.complianceDelta > 0 ? 'pass' : 'neutral'}
+          delta={`${auditStatus(data.complianceRate).label} · ${signed(data.complianceDelta, ' pts')}`}
+          tone={auditStatus(data.complianceRate).tone}
         />
         <MetricTile
           index={2}

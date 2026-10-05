@@ -3,7 +3,8 @@ import { Check } from '@phosphor-icons/react'
 import { getRecordById, getTodayStatus } from '../lib/data'
 import { useUser } from '../lib/session'
 import { useAsync } from '../lib/useAsync'
-import { stamp } from '../lib/format'
+import { auditStatus, pct, stamp } from '../lib/format'
+import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Feedback'
 
@@ -14,6 +15,11 @@ export default function Success() {
 
   const { data: record } = useAsync(() => getRecordById(id), [id])
   const { data: today } = useAsync(() => getTodayStatus(user.kitchenId), [user.kitchenId])
+
+  // Scored out of this checklist's own length, whatever it holds today.
+  const total = record ? (record.type === 'audit' ? record.answers.length : record.items.length) : 0
+  const completed = total - (record?.issues ?? 0)
+  const status = auditStatus(record?.compliance ?? 0)
 
   const pending =
     today && today.audit.status !== 'submitted'
@@ -34,6 +40,18 @@ export default function Success() {
         </p>
       ) : (
         <Skeleton className="mt-3 h-4 w-48" />
+      )}
+
+      {record && total > 0 && (
+        <div className="mt-5 w-full rounded-card border border-hairline bg-surface p-4 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[15px] font-medium">{status.label}</p>
+            <Badge tone={status.tone}>{pct(record.compliance)}</Badge>
+          </div>
+          <p className="mt-1 font-mono tabular text-[13px] text-ink-soft">
+            {completed} of {total} completed · {record.issues} not completed
+          </p>
+        </div>
       )}
 
       <div className="mt-7 flex w-full flex-col gap-2">

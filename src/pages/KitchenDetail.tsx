@@ -3,7 +3,7 @@ import { ArrowLeft, Storefront } from '@phosphor-icons/react'
 import { getKitchenById, getKitchens } from '../lib/data'
 import { useAsync } from '../lib/useAsync'
 import { useRecordStream } from '../lib/useRealtime'
-import { pct, stamp } from '../lib/format'
+import { auditStatus, pct, stamp } from '../lib/format'
 import { PageTitle, SectionLabel } from '../components/ui/Card'
 import { MetricTile } from '../components/data/MetricTile'
 import { ComplianceStrip } from '../components/data/Compliance'
@@ -73,7 +73,13 @@ export default function KitchenDetail() {
       </PageTitle>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricTile index={0} label="Compliance" value={pct(data.compliance)} />
+        <MetricTile
+          index={0}
+          label="Compliance"
+          value={pct(data.compliance)}
+          delta={auditStatus(data.compliance).label}
+          tone={auditStatus(data.compliance).tone}
+        />
         <MetricTile index={1} label="Audits this month" value={data.auditsThisMonth} />
         <MetricTile
           index={2}

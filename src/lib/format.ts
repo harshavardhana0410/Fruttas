@@ -73,3 +73,21 @@ export function initials(name: string): string {
     .join('')
     .toUpperCase()
 }
+
+export interface AuditStatus {
+  label: string
+  tone: 'pass' | 'warn' | 'fail'
+}
+
+/**
+ * The overall verdict on a checked list: 75% and above is satisfactory,
+ * 50 to 74 needs improvement, below 50 is unsatisfactory.
+ *
+ * The score is completed out of however many points the checklist holds, so
+ * adding or removing points changes the totals without touching this.
+ */
+export function auditStatus(score: number): AuditStatus {
+  if (score >= 75) return { label: 'Satisfactory', tone: 'pass' }
+  if (score >= 50) return { label: 'Needs improvement', tone: 'warn' }
+  return { label: 'Unsatisfactory', tone: 'fail' }
+}
