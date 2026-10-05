@@ -30,15 +30,20 @@ export interface InspectionPoint {
   section: string
   text: string
   critical: boolean
-  requirePhotoOnFail: boolean
 }
 
 export interface AuditAnswer {
   pointId: string
   value: YesNo | null
   remarks: string
-  photos: string[]
 }
+
+/**
+ * One photo per main heading, keyed by the heading's name — evidence is of the
+ * station, not of each question asked about it. Object URLs while the form is
+ * open, signed storage URLs once the record is read back.
+ */
+export type SectionPhotos = Record<string, string>
 
 /** One line on a kitchen's standing item list. Only its chef or an admin edits it. */
 export interface KitchenItem {
@@ -60,6 +65,7 @@ export interface AuditPayload {
   clientId: string
   date: string
   answers: AuditAnswer[]
+  sectionPhotos: SectionPhotos
 }
 
 export interface ItemsPayload {
@@ -84,6 +90,7 @@ interface SubmissionBase {
 export interface AuditSubmission extends SubmissionBase {
   type: 'audit'
   answers: AuditAnswer[]
+  sectionPhotos: SectionPhotos
 }
 
 export interface ItemsSubmission extends SubmissionBase {

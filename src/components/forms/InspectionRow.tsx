@@ -1,5 +1,4 @@
-import { useRef } from 'react'
-import { Camera, X, Warning } from '@phosphor-icons/react'
+import { Warning } from '@phosphor-icons/react'
 import type { AuditAnswer, InspectionPoint, YesNo } from '../../lib/types'
 import { Segmented } from '../ui/Segmented'
 import { Textarea } from '../ui/Field'
@@ -16,23 +15,9 @@ interface Props {
 }
 
 export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
-  const fileRef = useRef<HTMLInputElement>(null)
-
   const failed = answer.value === 'no'
   const missingAnswer = showErrors && answer.value === null
   const missingRemarks = showErrors && failed && answer.remarks.trim() === ''
-  const missingPhoto = showErrors && failed && point.requirePhotoOnFail && answer.photos.length === 0
-
-  function addPhotos(files: FileList | null) {
-    if (!files?.length) return
-    const urls = Array.from(files).map((f) => URL.createObjectURL(f))
-    onChange({ ...answer, photos: [...answer.photos, ...urls] })
-  }
-
-  function removePhoto(url: string) {
-    URL.revokeObjectURL(url)
-    onChange({ ...answer, photos: answer.photos.filter((p) => p !== url) })
-  }
 
   return (
     <div
@@ -86,7 +71,7 @@ export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
                   htmlFor={`remarks-${point.id}`}
                   className="text-[13px] text-ink-soft"
                 >
-                  Remarks {point.requirePhotoOnFail ? 'and photo' : ''}
+                  Remarks
                 </label>
                 <Textarea
                   id={`remarks-${point.id}`}
@@ -100,59 +85,6 @@ export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
                 {missingRemarks && (
                   <p className="mt-1.5 text-[12px] text-fail-fg">
                     Remarks required when marking No.
-                  </p>
-                )}
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    tabIndex={failed ? 0 : -1}
-                    onClick={() => fileRef.current?.click()}
-                    className={cx(
-                      'flex h-11 items-center gap-2 rounded-control border px-3 text-[13px]',
-                      'transition-colors hover:bg-sunken',
-                      missingPhoto ? 'border-fail-fg text-fail-fg' : 'border-hairline text-ink-soft',
-                    )}
-                  >
-                    <Camera size={16} />
-                    Add photo
-                  </button>
-
-                  {answer.photos.map((url, i) => (
-                    <span
-                      key={url}
-                      className="flex h-11 items-center gap-2 rounded-control border border-hairline bg-sunken pl-2 pr-1 text-[12px]"
-                    >
-                      <img src={url} alt="" className="h-8 w-8 rounded-chip object-cover" />
-                      <span className="font-mono tabular text-ink-soft">{pad2(i + 1)}</span>
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(url)}
-                        aria-label={`Remove photo ${i + 1}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-chip text-ink-soft hover:bg-hairline"
-                      >
-                        <X size={13} />
-                      </button>
-                    </span>
-                  ))}
-
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    multiple
-                    className="sr-only"
-                    onChange={(e) => {
-                      addPhotos(e.target.files)
-                      e.target.value = ''
-                    }}
-                  />
-                </div>
-
-                {missingPhoto && (
-                  <p className="mt-1.5 text-[12px] text-fail-fg">
-                    A photo is required for this point when marking No.
                   </p>
                 )}
               </div>

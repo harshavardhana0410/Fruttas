@@ -85,7 +85,6 @@ interface PointRow {
   section: string
   text: string
   critical: boolean
-  require_photo_on_fail: boolean
 }
 
 const toPoint = (r: PointRow): InspectionPoint => ({
@@ -94,7 +93,6 @@ const toPoint = (r: PointRow): InspectionPoint => ({
   section: r.section,
   text: r.text,
   critical: r.critical,
-  requirePhotoOnFail: r.require_photo_on_fail,
 })
 
 interface SubmissionRow {
@@ -116,8 +114,8 @@ interface SubmissionRow {
     point_text: string
     value: 'yes' | 'no'
     remarks: string
-    answer_photos?: { storage_path: string }[]
   }[]
+  section_photos?: { section: string; storage_path: string }[]
   submission_items?: {
     id: string
     serial: number
@@ -159,8 +157,10 @@ function toSubmission(r: SubmissionRow): Submission {
           pointId: a.point_id ?? `archived-${a.point_serial}`,
           value: a.value,
           remarks: a.remarks,
-          photos: (a.answer_photos ?? []).map((p) => p.storage_path),
         })),
+      sectionPhotos: Object.fromEntries(
+        (r.section_photos ?? []).map((p) => [p.section, p.storage_path]),
+      ),
     }
   }
 
@@ -268,7 +268,7 @@ export async function signOut(): Promise<void> {
 export async function getAuditTemplate(): Promise<InspectionPoint[]> {
   const { data, error } = await supabase
     .from('inspection_points')
-    .select('id, serial, section, text, critical, require_photo_on_fail')
+    .select('id, serial, section, text, critical')
     .eq('archived', false)
     .order('serial')
 
@@ -410,8 +410,8 @@ export async function getRecordById(id: string): Promise<Submission | null> {
     .from('submissions')
     .select(
       `${SUBMISSION_COLUMNS},
-       audit_answers ( point_id, point_serial, point_text, value, remarks,
-                       answer_photos ( storage_path ) ),
+       audit_answers ( point_id, point_serial, point_text, value, remarks ),
+       section_photos ( section, storage_path ),
        submission_items ( id, serial, item_id, name, quantity, unit, measuring, result, remarks )`,
     )
     .eq('id', id)
@@ -424,9 +424,11 @@ export async function getRecordById(id: string): Promise<Submission | null> {
 
   // Photos are private objects; the stored path is not directly loadable.
   if (submission.type === 'audit') {
-    for (const answer of submission.answers) {
-      answer.photos = await signPhotoUrls(answer.photos)
-    }
+    const sections = Object.keys(submission.sectionPhotos)
+    const signed = await signPhotoUrls(sections.map((s) => submission.sectionPhotos[s]))
+    submission.sectionPhotos = Object.fromEntries(
+      sections.map((s, i) => [s, signed[i]]).filter(([, url]) => url),
+    )
   }
   return submission
 }
@@ -437,10 +439,8 @@ async function signPhotoUrls(paths: string[]): Promise<string[]> {
     .from('audit-photos')
     .createSignedUrls(paths, 60 * 10)
   if (error || !data) return []
-  // Signing is per-path: one missing object must not drop the rest.
-  return data
-    .map((d) => d.signedUrl)
-    .filter((u): u is string => typeof u === 'string' && u.length > 0)
+  // Positional: the caller pairs each URL back up with its section.
+  return data.map((d) => d.signedUrl ?? '')
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -510,39 +510,31 @@ export async function submitAudit(payload: AuditPayload, _user: User): Promise<S
 }
 
 /**
- * Photos upload after the audit is filed, so they can be keyed to real
- * answer rows. A photo that fails to upload must never lose the audit —
- * the record is the evidence that matters most.
+ * Photos upload after the audit is filed, so the rows can point at a real
+ * submission. A photo that fails to upload must never lose the audit — the
+ * record is the evidence that matters most.
  */
 async function uploadAuditPhotos(submissionId: string, payload: AuditPayload): Promise<void> {
-  const withPhotos = payload.answers.filter((a) => a.photos.length > 0)
-  if (withPhotos.length === 0) return
+  const sections = Object.entries(payload.sectionPhotos)
+  if (sections.length === 0) return
 
   try {
-    const { data: answers } = await supabase
-      .from('audit_answers')
-      .select('id, point_id')
-      .eq('submission_id', submissionId)
+    for (const [section, objectUrl] of sections) {
+      const blob = await fetch(objectUrl).then((r) => r.blob())
+      const path = `${payload.kitchenId}/${submissionId}/${crypto.randomUUID()}.jpg`
 
-    const byPoint = new Map((answers ?? []).map((a) => [a.point_id as string, a.id as string]))
+      const { error } = await supabase.storage
+        .from('audit-photos')
+        .upload(path, blob, { contentType: blob.type || 'image/jpeg' })
 
-    for (const answer of withPhotos) {
-      const answerId = byPoint.get(answer.pointId)
-      if (!answerId) continue
-
-      for (const objectUrl of answer.photos) {
-        const blob = await fetch(objectUrl).then((r) => r.blob())
-        const path = `${payload.kitchenId}/${submissionId}/${answerId}/${crypto.randomUUID()}.jpg`
-
-        const { error } = await supabase.storage
-          .from('audit-photos')
-          .upload(path, blob, { contentType: blob.type || 'image/jpeg' })
-
-        if (!error) {
-          await supabase.from('answer_photos').insert({ answer_id: answerId, storage_path: path })
-        }
-        URL.revokeObjectURL(objectUrl)
+      if (!error) {
+        await supabase.from('section_photos').insert({
+          submission_id: submissionId,
+          section,
+          storage_path: path,
+        })
       }
+      URL.revokeObjectURL(objectUrl)
     }
   } catch {
     // Swallowed on purpose: the audit is already filed and is the record of
@@ -583,7 +575,6 @@ export async function saveTemplate(points: InspectionPoint[]): Promise<Inspectio
     section: p.section,
     text: p.text,
     critical: p.critical,
-    require_photo_on_fail: p.requirePhotoOnFail,
     archived: false,
   }))
 

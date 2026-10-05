@@ -6,16 +6,19 @@ import { useAsync } from '../lib/useAsync'
 import { useIsDesktop } from '../lib/useMediaQuery'
 import { useTableStream } from '../lib/useRealtime'
 import { isoDate, longDate, stamp } from '../lib/format'
-import type { AuditAnswer, AuditPayload, InspectionPoint } from '../lib/types'
+import type { AuditAnswer, AuditPayload, InspectionPoint, SectionPhotos } from '../lib/types'
 import { FormShell } from '../components/layout/FormShell'
 import { InspectionRow } from '../components/forms/InspectionRow'
+import { SectionPhoto } from '../components/forms/SectionPhoto'
 import { Button } from '../components/ui/Button'
 import { Notice, Skeleton } from '../components/ui/Feedback'
 import { cx } from '../lib/cx'
 
 function blank(points: InspectionPoint[]): AuditAnswer[] {
-  return points.map((p) => ({ pointId: p.id, value: null, remarks: '', photos: [] }))
+  return points.map((p) => ({ pointId: p.id, value: null, remarks: '' }))
 }
+
+const anchor = (section: string) => section.replace(/\s+/g, '-')
 
 export default function AuditForm() {
   const user = useUser()
@@ -27,6 +30,7 @@ export default function AuditForm() {
   useTableStream('kitchens', reloadKitchens)
 
   const [answers, setAnswers] = useState<AuditAnswer[] | null>(null)
+  const [photos, setPhotos] = useState<SectionPhotos>({})
   const [showErrors, setShowErrors] = useState(false)
   const [step, setStep] = useState(0)
   const [recovered, setRecovered] = useState<string | null>(null)
@@ -39,6 +43,7 @@ export default function AuditForm() {
     const draft = readDraft<AuditPayload>('audit')
     if (draft && draft.payload.answers.length === points.length) {
       setAnswers(draft.payload.answers)
+      // Object URLs die with the page, so a recovered draft starts photoless.
       setRecovered(draft.savedAt)
     } else {
       setAnswers(blank(points))
@@ -56,18 +61,34 @@ export default function AuditForm() {
     return [...map.entries()].map(([name, items]) => ({ name, items }))
   }, [points])
 
+  function save(nextAnswers: AuditAnswer[], nextPhotos: SectionPhotos) {
+    saveDraft<AuditPayload>('audit', {
+      kitchenId: user.kitchenId,
+      clientId: kitchen?.clientId ?? '',
+      date: isoDate(),
+      answers: nextAnswers,
+      sectionPhotos: nextPhotos,
+    })
+  }
+
   function update(next: AuditAnswer, index: number) {
     setAnswers((prev) => {
       if (!prev) return prev
       const copy = [...prev]
       copy[index] = next
-      saveDraft<AuditPayload>('audit', {
-        kitchenId: user.kitchenId,
-        clientId: kitchen?.clientId ?? '',
-        date: isoDate(),
-        answers: copy,
-      })
+      save(copy, photos)
       return copy
+    })
+  }
+
+  function setPhoto(section: string, url: string | null) {
+    setPhotos((prev) => {
+      const next = { ...prev }
+      if (prev[section]) URL.revokeObjectURL(prev[section])
+      if (url) next[section] = url
+      else delete next[section]
+      if (answers) save(answers, next)
+      return next
     })
   }
 
@@ -90,12 +111,22 @@ export default function AuditForm() {
   const answered = answers.filter((a) => a.value !== null).length
   const indexOf = (id: string) => points.findIndex((p) => p.id === id)
 
-  function firstProblem(): string | null {
+  const sectionFailed = (name: string) =>
+    sections
+      .find((s) => s.name === name)!
+      .items.some((p) => answers![indexOf(p.id)].value === 'no')
+
+  /** The first thing standing between this checklist and the review screen. */
+  function firstProblem(): { elId: string; section: string } | null {
     for (const p of points!) {
       const a = answers![indexOf(p.id)]
-      if (a.value === null) return p.id
-      if (a.value === 'no' && a.remarks.trim() === '') return p.id
-      if (a.value === 'no' && p.requirePhotoOnFail && a.photos.length === 0) return p.id
+      if (a.value === null || (a.value === 'no' && a.remarks.trim() === ''))
+        return { elId: `point-${p.id}`, section: p.section }
+    }
+    // A No anywhere under a heading has to be photographed once, at the heading.
+    for (const s of sections) {
+      if (sectionFailed(s.name) && !photos[s.name])
+        return { elId: `section-photo-${anchor(s.name)}`, section: s.name }
     }
     return null
   }
@@ -106,14 +137,14 @@ export default function AuditForm() {
       setShowErrors(true)
       // On mobile, move to the section holding the problem before scrolling.
       if (!desktop) {
-        const point = points!.find((p) => p.id === bad)!
-        const s = sections.findIndex((sec) => sec.name === point.section)
+        const s = sections.findIndex((sec) => sec.name === bad.section)
         if (s !== -1 && s !== step) setStep(s)
       }
       requestAnimationFrame(() => {
-        const el = document.getElementById(`point-${bad}`)
+        const el = document.getElementById(bad.elId)
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        el?.querySelector<HTMLElement>('button[role="radio"]')?.focus()
+        const focusable = el?.querySelector<HTMLElement>('button[role="radio"]')
+        ;(focusable ?? el)?.focus()
       })
       return
     }
@@ -204,7 +235,7 @@ export default function AuditForm() {
                 return (
                   <li key={s.name}>
                     <a
-                      href={`#section-${s.name.replace(/\s+/g, '-')}`}
+                      href={`#section-${anchor(s.name)}`}
                       className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5 text-[13px] text-ink-soft transition-colors hover:bg-sunken hover:text-ink"
                     >
                       <span className="truncate">{s.name}</span>
@@ -228,10 +259,18 @@ export default function AuditForm() {
           )}
 
           {visible.map((section) => (
-            <section key={section.name} id={`section-${section.name.replace(/\s+/g, '-')}`}>
+            <section key={section.name} id={`section-${anchor(section.name)}`}>
               <h2 className="label-section sticky top-14 z-20 border-b border-hairline bg-canvas py-2.5">
                 {section.name}
               </h2>
+
+              <SectionPhoto
+                section={section.name}
+                url={photos[section.name]}
+                required={sectionFailed(section.name)}
+                invalid={showErrors && sectionFailed(section.name) && !photos[section.name]}
+                onChange={(url) => setPhoto(section.name, url)}
+              />
               {section.items.map((point) => {
                 const i = indexOf(point.id)
                 return (

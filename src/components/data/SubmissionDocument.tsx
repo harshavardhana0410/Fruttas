@@ -1,4 +1,11 @@
-import type { AuditAnswer, InspectionPoint, ItemEntry, Kitchen, YesNo } from '../../lib/types'
+import type {
+  AuditAnswer,
+  InspectionPoint,
+  ItemEntry,
+  Kitchen,
+  SectionPhotos,
+  YesNo,
+} from '../../lib/types'
 import { Badge } from '../ui/Badge'
 import { Notice } from '../ui/Feedback'
 import { DefRow } from '../ui/Field'
@@ -21,11 +28,14 @@ export function SubmissionDocument({
   points,
   answers,
   items,
+  sectionPhotos,
 }: {
   meta: Meta
   points?: InspectionPoint[]
   answers?: AuditAnswer[]
   items?: ItemEntry[]
+  /** One photo per main heading, keyed by heading name. */
+  sectionPhotos?: SectionPhotos
 }) {
   const failures =
     answers && points
@@ -98,7 +108,9 @@ export function SubmissionDocument({
         )}
       </div>
 
-      {answers && points && <AuditBody points={points} answers={answers} />}
+      {answers && points && (
+        <AuditBody points={points} answers={answers} sectionPhotos={sectionPhotos ?? {}} />
+      )}
       {items && <ItemsBody items={items} />}
     </div>
   )
@@ -113,7 +125,15 @@ function Figure({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-function AuditBody({ points, answers }: { points: InspectionPoint[]; answers: AuditAnswer[] }) {
+function AuditBody({
+  points,
+  answers,
+  sectionPhotos,
+}: {
+  points: InspectionPoint[]
+  answers: AuditAnswer[]
+  sectionPhotos: SectionPhotos
+}) {
   let section = ''
   return (
     <div>
@@ -123,9 +143,20 @@ function AuditBody({ points, answers }: { points: InspectionPoint[]; answers: Au
         return (
           <div key={p.id}>
             {header && (
-              <h3 className="label-section border-b border-hairline pb-2 pt-5 first:pt-0">
-                {header}
-              </h3>
+              <>
+                <h3 className="label-section border-b border-hairline pb-2 pt-5 first:pt-0">
+                  {header}
+                </h3>
+                {sectionPhotos[header] && (
+                  <div className="border-b border-hairline py-3 print-block">
+                    <img
+                      src={sectionPhotos[header]}
+                      alt={`Evidence for ${header}`}
+                      className="h-28 w-28 rounded-chip border border-hairline object-cover"
+                    />
+                  </div>
+                )}
+              </>
             )}
             <div className="flex gap-3 border-b border-hairline py-3 print-block">
               <span className="w-6 shrink-0 font-mono tabular text-[12px] text-ink-soft">
@@ -137,18 +168,6 @@ function AuditBody({ points, answers }: { points: InspectionPoint[]; answers: Au
                   <p className="mt-1.5 border-l-2 border-hairline pl-3 text-[13px] text-ink-soft">
                     {a.remarks}
                   </p>
-                )}
-                {a?.photos && a.photos.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {a.photos.map((url, i) => (
-                      <img
-                        key={url}
-                        src={url}
-                        alt={`Evidence ${i + 1} for point ${p.serial}`}
-                        className="h-14 w-14 rounded-chip border border-hairline object-cover"
-                      />
-                    ))}
-                  </div>
                 )}
               </div>
               <div className="shrink-0">

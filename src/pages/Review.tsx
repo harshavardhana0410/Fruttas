@@ -86,6 +86,7 @@ export default function Review({ kind }: { kind: FormType }) {
         }}
         points={points}
         answers={isAudit ? (draft.payload as AuditPayload).answers : undefined}
+        sectionPhotos={isAudit ? (draft.payload as AuditPayload).sectionPhotos : undefined}
         items={isAudit ? undefined : (draft.payload as ItemsPayload).items}
       />
 

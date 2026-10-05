@@ -161,7 +161,6 @@ function AuditTemplate({ onBack }: { onBack: () => void }) {
       section,
       text: '',
       critical: false,
-      requirePhotoOnFail: false,
     })
     setPoints(copy.map((p, i) => ({ ...p, serial: i + 1 })))
   }
@@ -258,11 +257,6 @@ function AuditTemplate({ onBack }: { onBack: () => void }) {
                           onChange={(v) => patch(p.id, { critical: v })}
                           label="Critical"
                         />
-                        <Toggle
-                          checked={p.requirePhotoOnFail}
-                          onChange={(v) => patch(p.id, { requirePhotoOnFail: v })}
-                          label="Photo required on No"
-                        />
                       </div>
                     </div>
 
@@ -303,7 +297,6 @@ function AuditTemplate({ onBack }: { onBack: () => void }) {
                 section: name,
                 text: '',
                 critical: false,
-                requirePhotoOnFail: false,
               },
             ])
           }}
@@ -332,8 +325,7 @@ function countChanges(before: InspectionPoint[], after: InspectionPoint[]): numb
       was.text !== p.text ||
       was.section !== p.section ||
       was.serial !== p.serial ||
-      was.critical !== p.critical ||
-      was.requirePhotoOnFail !== p.requirePhotoOnFail
+      was.critical !== p.critical
     ) {
       n++
     }
