@@ -7,9 +7,10 @@ import type {
   InspectionPoint,
   ItemsPayload,
   Kitchen,
-  KitchenItem,
   KitchenDetail,
+  KitchenItem,
   Measuring,
+  PhotoMap,
   RecordFilters,
   Role,
   Submission,
@@ -115,7 +116,7 @@ interface SubmissionRow {
     value: 'yes' | 'no'
     remarks: string
   }[]
-  section_photos?: { section: string; storage_path: string }[]
+  audit_photos?: { section: string | null; point_id: string | null; storage_path: string }[]
   submission_items?: {
     id: string
     serial: number
@@ -159,7 +160,14 @@ function toSubmission(r: SubmissionRow): Submission {
           remarks: a.remarks,
         })),
       sectionPhotos: Object.fromEntries(
-        (r.section_photos ?? []).map((p) => [p.section, p.storage_path]),
+        (r.audit_photos ?? [])
+          .filter((p) => p.section)
+          .map((p) => [p.section as string, p.storage_path]),
+      ),
+      pointPhotos: Object.fromEntries(
+        (r.audit_photos ?? [])
+          .filter((p) => p.point_id)
+          .map((p) => [p.point_id as string, p.storage_path]),
       ),
     }
   }
@@ -411,7 +419,7 @@ export async function getRecordById(id: string): Promise<Submission | null> {
     .select(
       `${SUBMISSION_COLUMNS},
        audit_answers ( point_id, point_serial, point_text, value, remarks ),
-       section_photos ( section, storage_path ),
+       audit_photos ( section, point_id, storage_path ),
        submission_items ( id, serial, item_id, name, quantity, unit, measuring, result, remarks )`,
     )
     .eq('id', id)
@@ -424,23 +432,26 @@ export async function getRecordById(id: string): Promise<Submission | null> {
 
   // Photos are private objects; the stored path is not directly loadable.
   if (submission.type === 'audit') {
-    const sections = Object.keys(submission.sectionPhotos)
-    const signed = await signPhotoUrls(sections.map((s) => submission.sectionPhotos[s]))
-    submission.sectionPhotos = Object.fromEntries(
-      sections.map((s, i) => [s, signed[i]]).filter(([, url]) => url),
-    )
+    submission.sectionPhotos = await signPhotoMap(submission.sectionPhotos)
+    submission.pointPhotos = await signPhotoMap(submission.pointPhotos)
   }
   return submission
 }
 
-async function signPhotoUrls(paths: string[]): Promise<string[]> {
-  if (paths.length === 0) return []
+/** Swaps every stored path for a signed URL, dropping any that would not sign. */
+async function signPhotoMap(photos: PhotoMap): Promise<PhotoMap> {
+  const keys = Object.keys(photos)
+  if (keys.length === 0) return {}
+
   const { data, error } = await supabase.storage
     .from('audit-photos')
-    .createSignedUrls(paths, 60 * 10)
-  if (error || !data) return []
-  // Positional: the caller pairs each URL back up with its section.
-  return data.map((d) => d.signedUrl ?? '')
+    .createSignedUrls(keys.map((k) => photos[k]), 60 * 10)
+  if (error || !data) return {}
+
+  // Signing is positional, so each URL pairs back up with the key it came from.
+  return Object.fromEntries(
+    keys.map((k, i) => [k, data[i]?.signedUrl ?? '']).filter(([, url]) => url),
+  )
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -515,11 +526,21 @@ export async function submitAudit(payload: AuditPayload, _user: User): Promise<S
  * record is the evidence that matters most.
  */
 async function uploadAuditPhotos(submissionId: string, payload: AuditPayload): Promise<void> {
-  const sections = Object.entries(payload.sectionPhotos)
-  if (sections.length === 0) return
+  // A row names either the heading or the point it is evidence of, never both.
+  const slots = [
+    ...Object.entries(payload.sectionPhotos).map(([section, url]) => ({
+      url,
+      row: { section, point_id: null },
+    })),
+    ...Object.entries(payload.pointPhotos).map(([pointId, url]) => ({
+      url,
+      row: { section: null, point_id: pointId },
+    })),
+  ]
+  if (slots.length === 0) return
 
   try {
-    for (const [section, objectUrl] of sections) {
+    for (const { url: objectUrl, row } of slots) {
       const blob = await fetch(objectUrl).then((r) => r.blob())
       const path = `${payload.kitchenId}/${submissionId}/${crypto.randomUUID()}.jpg`
 
@@ -528,11 +549,9 @@ async function uploadAuditPhotos(submissionId: string, payload: AuditPayload): P
         .upload(path, blob, { contentType: blob.type || 'image/jpeg' })
 
       if (!error) {
-        await supabase.from('section_photos').insert({
-          submission_id: submissionId,
-          section,
-          storage_path: path,
-        })
+        await supabase
+          .from('audit_photos')
+          .insert({ submission_id: submissionId, storage_path: path, ...row })
       }
       URL.revokeObjectURL(objectUrl)
     }

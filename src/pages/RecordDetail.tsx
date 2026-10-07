@@ -87,6 +87,7 @@ export default function RecordDetail() {
         points={points ?? undefined}
         answers={record.type === 'audit' ? record.answers : undefined}
         sectionPhotos={record.type === 'audit' ? record.sectionPhotos : undefined}
+        pointPhotos={record.type === 'audit' ? record.pointPhotos : undefined}
         items={record.type === 'items' ? record.items : undefined}
       />
     </div>

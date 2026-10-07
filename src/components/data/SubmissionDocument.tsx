@@ -3,7 +3,7 @@ import type {
   InspectionPoint,
   ItemEntry,
   Kitchen,
-  SectionPhotos,
+  PhotoMap,
   YesNo,
 } from '../../lib/types'
 import { Badge } from '../ui/Badge'
@@ -29,13 +29,16 @@ export function SubmissionDocument({
   answers,
   items,
   sectionPhotos,
+  pointPhotos,
 }: {
   meta: Meta
   points?: InspectionPoint[]
   answers?: AuditAnswer[]
   items?: ItemEntry[]
   /** One photo per main heading, keyed by heading name. */
-  sectionPhotos?: SectionPhotos
+  sectionPhotos?: PhotoMap
+  /** One photo per failed point, keyed by point id. */
+  pointPhotos?: PhotoMap
 }) {
   const failures =
     answers && points
@@ -109,7 +112,12 @@ export function SubmissionDocument({
       </div>
 
       {answers && points && (
-        <AuditBody points={points} answers={answers} sectionPhotos={sectionPhotos ?? {}} />
+        <AuditBody
+          points={points}
+          answers={answers}
+          sectionPhotos={sectionPhotos ?? {}}
+          pointPhotos={pointPhotos ?? {}}
+        />
       )}
       {items && <ItemsBody items={items} />}
     </div>
@@ -129,10 +137,12 @@ function AuditBody({
   points,
   answers,
   sectionPhotos,
+  pointPhotos,
 }: {
   points: InspectionPoint[]
   answers: AuditAnswer[]
-  sectionPhotos: SectionPhotos
+  sectionPhotos: PhotoMap
+  pointPhotos: PhotoMap
 }) {
   let section = ''
   return (
@@ -168,6 +178,13 @@ function AuditBody({
                   <p className="mt-1.5 border-l-2 border-hairline pl-3 text-[13px] text-ink-soft">
                     {a.remarks}
                   </p>
+                )}
+                {pointPhotos[p.id] && (
+                  <img
+                    src={pointPhotos[p.id]}
+                    alt={`Evidence for point ${p.serial}`}
+                    className="mt-2 h-20 w-20 rounded-chip border border-hairline object-cover"
+                  />
                 )}
               </div>
               <div className="shrink-0">

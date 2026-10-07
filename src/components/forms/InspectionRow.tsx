@@ -1,5 +1,6 @@
 import { Warning } from '@phosphor-icons/react'
 import type { AuditAnswer, InspectionPoint, YesNo } from '../../lib/types'
+import { PhotoSlot } from './PhotoSlot'
 import { Segmented } from '../ui/Segmented'
 import { Textarea } from '../ui/Field'
 import { Badge } from '../ui/Badge'
@@ -10,14 +11,25 @@ interface Props {
   point: InspectionPoint
   answer: AuditAnswer
   onChange: (next: AuditAnswer) => void
+  /** The photo of what was wrong here, while the form is open. */
+  photo?: string
+  onPhotoChange: (url: string | null) => void
   /** Set after a failed submit attempt so the row shows what is missing. */
   showErrors?: boolean
 }
 
-export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
+export function InspectionRow({
+  point,
+  answer,
+  onChange,
+  photo,
+  onPhotoChange,
+  showErrors,
+}: Props) {
   const failed = answer.value === 'no'
   const missingAnswer = showErrors && answer.value === null
   const missingRemarks = showErrors && failed && answer.remarks.trim() === ''
+  const missingPhoto = showErrors && failed && !photo
 
   return (
     <div
@@ -71,7 +83,7 @@ export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
                   htmlFor={`remarks-${point.id}`}
                   className="text-[13px] text-ink-soft"
                 >
-                  Remarks
+                  Remarks and photo
                 </label>
                 <Textarea
                   id={`remarks-${point.id}`}
@@ -87,6 +99,18 @@ export function InspectionRow({ point, answer, onChange, showErrors }: Props) {
                     Remarks required when marking No.
                   </p>
                 )}
+
+                <div className="mt-3">
+                  <PhotoSlot
+                    anchorId={`point-photo-${point.id}`}
+                    label={`point ${point.serial}`}
+                    hint="A photo is required for this point."
+                    url={photo}
+                    invalid={Boolean(missingPhoto)}
+                    tabIndex={failed ? 0 : -1}
+                    onChange={onPhotoChange}
+                  />
+                </div>
               </div>
             </div>
           </div>

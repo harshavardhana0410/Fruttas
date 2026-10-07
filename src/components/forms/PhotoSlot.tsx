@@ -4,31 +4,37 @@ import { cx } from '../../lib/cx'
 import { CameraSheet } from './CameraSheet'
 
 /**
- * One photo for a main heading, taken on the spot. Shooting again replaces it —
- * the record holds a single photo per heading, so there is nothing to choose
- * between.
+ * One photo, taken on the spot. Used for a main heading's photo of the
+ * station and for a point's photo of what was wrong — both hold a single
+ * photo, so shooting again replaces it and there is nothing to choose between.
  */
-export function SectionPhoto({
-  section,
+export function PhotoSlot({
+  anchorId,
+  label,
+  hint,
   url,
-  required,
   invalid,
+  tabIndex,
   onChange,
 }: {
-  section: string
+  /** Scroll target when a submit attempt stops here. */
+  anchorId: string
+  /** Names the slot in the camera sheet and to a screen reader. */
+  label: string
+  hint: string
   url?: string
-  /** True once something under this heading is marked No. */
-  required: boolean
   invalid: boolean
+  tabIndex?: number
   onChange: (url: string | null) => void
 }) {
   const [shooting, setShooting] = useState(false)
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-hairline py-3">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
-        id={`section-photo-${section.replace(/\s+/g, '-')}`}
+        id={anchorId}
+        tabIndex={tabIndex}
         onClick={() => setShooting(true)}
         className={cx(
           'flex h-11 scroll-mt-32 items-center gap-2 rounded-control border px-3 text-[13px]',
@@ -45,24 +51,21 @@ export function SectionPhoto({
           <img src={url} alt="" className="h-8 w-8 rounded-chip object-cover" />
           <button
             type="button"
+            tabIndex={tabIndex}
             onClick={() => onChange(null)}
-            aria-label={`Remove the photo for ${section}`}
+            aria-label={`Remove the photo for ${label}`}
             className="flex h-8 w-8 items-center justify-center rounded-chip text-ink-soft hover:bg-hairline"
           >
             <X size={13} />
           </button>
         </span>
       ) : (
-        <p className={cx('text-[12px]', invalid ? 'text-fail-fg' : 'text-ink-soft')}>
-          {required
-            ? 'A photo is required — something here was marked No.'
-            : 'One photo for this section. Optional until a point is marked No.'}
-        </p>
+        <p className={cx('text-[12px]', invalid ? 'text-fail-fg' : 'text-ink-soft')}>{hint}</p>
       )}
 
       <CameraSheet
         open={shooting}
-        section={section}
+        section={label}
         onClose={() => setShooting(false)}
         onCapture={onChange}
       />

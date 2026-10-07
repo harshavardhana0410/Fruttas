@@ -6,10 +6,10 @@ import { useAsync } from '../lib/useAsync'
 import { useIsDesktop } from '../lib/useMediaQuery'
 import { useTableStream } from '../lib/useRealtime'
 import { isoDate, longDate, stamp } from '../lib/format'
-import type { AuditAnswer, AuditPayload, InspectionPoint, SectionPhotos } from '../lib/types'
+import type { AuditAnswer, AuditPayload, InspectionPoint, PhotoMap } from '../lib/types'
 import { FormShell } from '../components/layout/FormShell'
 import { InspectionRow } from '../components/forms/InspectionRow'
-import { SectionPhoto } from '../components/forms/SectionPhoto'
+import { PhotoSlot } from '../components/forms/PhotoSlot'
 import { Button } from '../components/ui/Button'
 import { Notice, Skeleton } from '../components/ui/Feedback'
 import { cx } from '../lib/cx'
@@ -30,7 +30,8 @@ export default function AuditForm() {
   useTableStream('kitchens', reloadKitchens)
 
   const [answers, setAnswers] = useState<AuditAnswer[] | null>(null)
-  const [photos, setPhotos] = useState<SectionPhotos>({})
+  const [photos, setPhotos] = useState<PhotoMap>({})
+  const [pointPhotos, setPointPhotos] = useState<PhotoMap>({})
   const [showErrors, setShowErrors] = useState(false)
   const [step, setStep] = useState(0)
   const [recovered, setRecovered] = useState<string | null>(null)
@@ -61,33 +62,58 @@ export default function AuditForm() {
     return [...map.entries()].map(([name, items]) => ({ name, items }))
   }, [points])
 
-  function save(nextAnswers: AuditAnswer[], nextPhotos: SectionPhotos) {
+  function save(
+    nextAnswers: AuditAnswer[],
+    nextPhotos: PhotoMap = photos,
+    nextPointPhotos: PhotoMap = pointPhotos,
+  ) {
     saveDraft<AuditPayload>('audit', {
       kitchenId: user.kitchenId,
       clientId: kitchen?.clientId ?? '',
       date: isoDate(),
       answers: nextAnswers,
       sectionPhotos: nextPhotos,
+      pointPhotos: nextPointPhotos,
     })
   }
 
   function update(next: AuditAnswer, index: number) {
-    setAnswers((prev) => {
-      if (!prev) return prev
-      const copy = [...prev]
-      copy[index] = next
-      save(copy, photos)
-      return copy
-    })
+    const copy = [...answers!]
+    copy[index] = next
+
+    // A point's photo is evidence of a problem. Take the No back and the photo
+    // goes with it, so a passing point never files one.
+    const nextPointPhotos =
+      next.value !== 'no' && pointPhotos[next.pointId]
+        ? swap(pointPhotos, next.pointId, null)
+        : pointPhotos
+
+    setAnswers(copy)
+    setPointPhotos(nextPointPhotos)
+    save(copy, photos, nextPointPhotos)
+  }
+
+  /** Replaces one slot's photo, freeing the frame it held. */
+  function swap(prev: PhotoMap, key: string, url: string | null): PhotoMap {
+    const next = { ...prev }
+    if (prev[key]) URL.revokeObjectURL(prev[key])
+    if (url) next[key] = url
+    else delete next[key]
+    return next
   }
 
   function setPhoto(section: string, url: string | null) {
     setPhotos((prev) => {
-      const next = { ...prev }
-      if (prev[section]) URL.revokeObjectURL(prev[section])
-      if (url) next[section] = url
-      else delete next[section]
+      const next = swap(prev, section, url)
       if (answers) save(answers, next)
+      return next
+    })
+  }
+
+  function setPointPhoto(pointId: string, url: string | null) {
+    setPointPhotos((prev) => {
+      const next = swap(prev, pointId, url)
+      if (answers) save(answers, photos, next)
       return next
     })
   }
@@ -122,6 +148,9 @@ export default function AuditForm() {
       const a = answers![indexOf(p.id)]
       if (a.value === null || (a.value === 'no' && a.remarks.trim() === ''))
         return { elId: `point-${p.id}`, section: p.section }
+      // A No has to be photographed where it was found, too.
+      if (a.value === 'no' && !pointPhotos[p.id])
+        return { elId: `point-photo-${p.id}`, section: p.section }
     }
     // A No anywhere under a heading has to be photographed once, at the heading.
     for (const s of sections) {
@@ -264,13 +293,20 @@ export default function AuditForm() {
                 {section.name}
               </h2>
 
-              <SectionPhoto
-                section={section.name}
-                url={photos[section.name]}
-                required={sectionFailed(section.name)}
-                invalid={showErrors && sectionFailed(section.name) && !photos[section.name]}
-                onChange={(url) => setPhoto(section.name, url)}
-              />
+              <div className="border-b border-hairline py-3">
+                <PhotoSlot
+                  anchorId={`section-photo-${anchor(section.name)}`}
+                  label={section.name}
+                  hint={
+                    sectionFailed(section.name)
+                      ? 'A photo is required — something here was marked No.'
+                      : 'One photo for this section. Optional until a point is marked No.'
+                  }
+                  url={photos[section.name]}
+                  invalid={showErrors && sectionFailed(section.name) && !photos[section.name]}
+                  onChange={(url) => setPhoto(section.name, url)}
+                />
+              </div>
               {section.items.map((point) => {
                 const i = indexOf(point.id)
                 return (
@@ -278,6 +314,8 @@ export default function AuditForm() {
                     key={point.id}
                     point={point}
                     answer={answers[i]}
+                    photo={pointPhotos[point.id]}
+                    onPhotoChange={(url) => setPointPhoto(point.id, url)}
                     showErrors={showErrors}
                     onChange={(next) => update(next, i)}
                   />

@@ -39,11 +39,12 @@ export interface AuditAnswer {
 }
 
 /**
- * One photo per main heading, keyed by the heading's name — evidence is of the
- * station, not of each question asked about it. Object URLs while the form is
- * open, signed storage URLs once the record is read back.
+ * Photos keyed by what they are evidence of: a main heading's name for the
+ * photo of the station, or a point's id for the photo of what was wrong there.
+ * One photo each. Object URLs while the form is open, signed storage URLs
+ * once the record is read back.
  */
-export type SectionPhotos = Record<string, string>
+export type PhotoMap = Record<string, string>
 
 /** One line on a kitchen's standing item list. Only its chef or an admin edits it. */
 export interface KitchenItem {
@@ -65,7 +66,8 @@ export interface AuditPayload {
   clientId: string
   date: string
   answers: AuditAnswer[]
-  sectionPhotos: SectionPhotos
+  sectionPhotos: PhotoMap
+  pointPhotos: PhotoMap
 }
 
 export interface ItemsPayload {
@@ -90,7 +92,8 @@ interface SubmissionBase {
 export interface AuditSubmission extends SubmissionBase {
   type: 'audit'
   answers: AuditAnswer[]
-  sectionPhotos: SectionPhotos
+  sectionPhotos: PhotoMap
+  pointPhotos: PhotoMap
 }
 
 export interface ItemsSubmission extends SubmissionBase {
