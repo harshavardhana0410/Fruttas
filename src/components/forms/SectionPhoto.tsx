@@ -1,10 +1,12 @@
-import { useRef } from 'react'
+import { useState } from 'react'
 import { Camera, X } from '@phosphor-icons/react'
 import { cx } from '../../lib/cx'
+import { CameraSheet } from './CameraSheet'
 
 /**
- * One photo for a main heading. Picking again replaces it — the record holds
- * a single photo per heading, so there is nothing to choose between.
+ * One photo for a main heading, taken on the spot. Shooting again replaces it —
+ * the record holds a single photo per heading, so there is nothing to choose
+ * between.
  */
 export function SectionPhoto({
   section,
@@ -20,14 +22,14 @@ export function SectionPhoto({
   invalid: boolean
   onChange: (url: string | null) => void
 }) {
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [shooting, setShooting] = useState(false)
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-hairline py-3">
       <button
         type="button"
         id={`section-photo-${section.replace(/\s+/g, '-')}`}
-        onClick={() => fileRef.current?.click()}
+        onClick={() => setShooting(true)}
         className={cx(
           'flex h-11 scroll-mt-32 items-center gap-2 rounded-control border px-3 text-[13px]',
           'transition-colors hover:bg-sunken',
@@ -35,7 +37,7 @@ export function SectionPhoto({
         )}
       >
         <Camera size={16} />
-        {url ? 'Replace photo' : 'Add photo'}
+        {url ? 'Retake photo' : 'Take photo'}
       </button>
 
       {url ? (
@@ -58,18 +60,11 @@ export function SectionPhoto({
         </p>
       )}
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        aria-label={`Photo for ${section}`}
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) onChange(URL.createObjectURL(file))
-          e.target.value = ''
-        }}
+      <CameraSheet
+        open={shooting}
+        section={section}
+        onClose={() => setShooting(false)}
+        onCapture={onChange}
       />
     </div>
   )
